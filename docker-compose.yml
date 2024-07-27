@@ -1,0 +1,22 @@
+version: '3.1'
+
+services:
+  db:
+    build: .
+    container_name: my_mysql_cosmic_catalyst
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: v5C9UurE3wmqix2C
+      MYSQL_DATABASE: cosmic_catalyst
+      MYSQL_USER: ollama
+      MYSQL_PASSWORD: 3e4Qv5uo2Cg31zC1
+    ports:
+      - "3307:3306"
+    volumes:
+      - ${HOME}/.ollama/mysql_data:/var/lib/mysql  # Project-specific directory in the user's home directory
+    networks:
+      - ollama_network
+
+networks:
+  ollama_network:
+    driver: bridge

@@ -85,3 +85,17 @@ print(response.json())
 # Get thread state
 response = httpx.get("http://127.0.0.1:8000/threads/thread1")
 print(response.json())
+
+ollama-python/
+├── api/
+│   ├── __init__.py
+│   ├── app.py
+│   └── ...
+├── db/
+│   ├── __init__.py
+│   ├── database.py
+│   └── models.py
+├── Dockerfile
+├── docker-compose.yml
+├── entrypoint.sh
+└── init_db.py
