@@ -1,22 +1,28 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from typing import Dict, Any, List, Iterator, Union
+import json
+from typing import Dict, Any, List
+
 import httpx
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse, JSONResponse
+from sqlalchemy.orm import Session
+
 from api.v1.schemas import (
-    UserCreate, UserRead, UserUpdate, ThreadCreate, ThreadRead, MessageCreate, MessageRead, Run, AssistantCreate, AssistantRead
+    UserCreate, UserRead, UserUpdate, ThreadCreate, ThreadRead, MessageCreate, MessageRead, Run, AssistantCreate,
+    AssistantRead
 )
 from db.database import get_db
-from services.user_service import UserService
-from services.thread_service import ThreadService
-from services.message_service import MessageService
-from services.run_service import RunService
 from services.assistant_service import AssistantService
 from services.loggin_service import LoggingUtility
+from services.message_service import MessageService
+from services.run_service import RunService
+from services.thread_service import ThreadService
+from services.user_service import UserService
 
 logging_utility = LoggingUtility()
 
 router = APIRouter()
+
+# Helper function to forward requests to the Ollama API
 
 # Helper function to forward requests to the Ollama API
 async def forward_to_ollama(path: str, payload: Dict[str, Any], stream: bool = False):
@@ -39,7 +45,10 @@ async def forward_to_ollama(path: str, payload: Dict[str, Any], stream: bool = F
             logging_utility.error("Exception in forward_to_ollama: %s", str(e))
             raise
 
+
+
 # Generate endpoint
+
 @router.post("/api/generate")
 async def generate_endpoint(payload: Dict[str, Any]):
     logging_utility.info("Received request at /api/generate with payload: %s", payload)
@@ -51,22 +60,57 @@ async def generate_endpoint(payload: Dict[str, Any]):
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 # Chat endpoint
-from fastapi.responses import StreamingResponse, JSONResponse
 
+
+
+from fastapi.responses import StreamingResponse, JSONResponse
+import asyncio
+
+# Chat endpoint
+# Chat endpoint
 @router.post("/chat")
-async def chat_endpoint(payload: Dict[str, Any]):
-    logging_utility.info("Received request at /v1/chat with payload: %s", payload)
+async def chat_endpoint(payload: Dict[str, Any], db: Session = Depends(get_db)):
+    logging_utility.info("Received request at /chat with payload: %s", payload)
+    message_service = MessageService(db)
     try:
         if payload.get("stream", False):
-            return StreamingResponse(forward_to_ollama("/api/chat", payload, stream=True), media_type="application/json")
+            async def stream_response():
+                async for line in forward_to_ollama("/api/chat", payload, stream=True):
+                    logging_utility.info("Streaming response line: %s", line)
+                    try:
+                        json_obj = json.loads(line)
+                        if 'message' in json_obj and json_obj['message']['role'] == 'assistant':
+                            assistant_content = json_obj['message']['content']
+                            logging_utility.info("Saving assistant message for thread ID: %s", payload.get('thread_id'))
+                            if 'thread_id' in payload:
+                                message_service.save_assistant_message(payload['thread_id'], assistant_content)
+                            else:
+                                logging_utility.error("Missing 'thread_id' in payload: %s", payload)
+                    except json.JSONDecodeError:
+                        logging_utility.error("Failed to decode line: %s", line)
+                        continue
+                    yield line.encode('utf-8')  # Ensure the response is a byte stream
+            return StreamingResponse(stream_response(), media_type="application/json")
         else:
             result = [item async for item in forward_to_ollama("/api/chat", payload)]
+            if result:
+                for response in result:
+                    if 'message' in response and response['message']['role'] == 'assistant':
+                        assistant_content = response['message']['content']
+                        logging_utility.info("Saving assistant message for thread ID: %s", payload.get('thread_id'))
+                        if 'thread_id' in payload:
+                            message_service.save_assistant_message(payload['thread_id'], assistant_content)
+                        else:
+                            logging_utility.error("Missing 'thread_id' in payload: %s", payload)
             return JSONResponse(content=result[0] if result else {})
     except Exception as e:
         logging_utility.error("Error in chat_endpoint: %s", str(e))
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
-# User routes
+
+
+
+
 @router.post("/users", response_model=UserRead)
 def create_user(user: UserCreate = None, db: Session = Depends(get_db)):
     user_service = UserService(db)
@@ -109,6 +153,12 @@ def create_message(message: MessageCreate, db: Session = Depends(get_db)):
 def get_message(message_id: str, db: Session = Depends(get_db)):
     message_service = MessageService(db)
     return message_service.retrieve_message(message_id)
+
+@router.get("/threads/{thread_id}/messages", response_model=List[MessageRead])
+def list_messages(thread_id: str, limit: int = 20, order: str = "asc", db: Session = Depends(get_db)):
+    logging_utility.info(f"Retrieving messages for thread: {thread_id}")
+    message_service = MessageService(db)
+    return message_service.list_messages(thread_id=thread_id, limit=limit, order=order)
 
 # Run routes
 @router.post("/runs", response_model=Run)

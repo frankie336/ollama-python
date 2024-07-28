@@ -56,7 +56,6 @@ class LoggingUtility:
         print("Intercepted Error Log:")
         print(message % args)
         # Add your custom logic here
-        self.activate_sentinel_drone(message % args)
 
     def intercept_critical_log(self, message, *args, **kwargs):
         # Perform actions or send notifications for critical logs

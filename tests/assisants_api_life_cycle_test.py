@@ -1,8 +1,12 @@
+import time
+
 from new_clients.assistant_client import AssistantService
 from new_clients.thread_client import ThreadService
 from new_clients.message_client import MessageService
 from new_clients.ollama_client import OllamaClient, RunService
 from services.loggin_service import LoggingUtility
+
+import json
 
 logging_utility = LoggingUtility()
 
@@ -37,27 +41,47 @@ user1_id = user1["id"]
 # Create a thread
 new_thread = thread_service.create_thread(participant_ids=[user1_id], meta_data={"topic": "Test Thread"})
 thread_id = new_thread["id"]
+#thread_id="thread_NoHFLkgoyQZ35Ro7FifLyu"
 print(f"Created thread with ID: {thread_id}")
 
 # Create a message
-content = [{"text": {"annotations": [], "value": "I need to solve the equation `3x + 11 = 14`. Can you help me?"}, "type": "text"}]
+content = [{"text": {"annotations": [], "value": "This is a test message. Please confirm by sending me a poem"}, "type": "text"}]
 new_message = message_service.create_message(thread_id=thread_id, content=content, role="user", sender_id=user1_id)
 message_id = new_message["id"]
 print(f"Created message with ID: {message_id}")
 
-# Retrieve the created message to verify
-retrieved_message = message_service.retrieve_message(message_id)
-print(f"Retrieved message: {retrieved_message}")
+# Retrieve all messages in the thread
+thread_messages = message_service.list_messages(thread_id=thread_id)
+print(f"Retrieved all messages in the thread: {thread_messages}")
+
+# Serialize the messages for the chat endpoint
+serialized_messages = [
+    {"role": message["role"], "content": message["content"][0]["text"]["value"]}
+    for message in thread_messages
+]
+
 
 # Set up the run
 run = run_service.create_run(assistant_id=assistant_id, thread_id=thread_id, instructions="")
 run_id = run["id"]
 print(f"Created run with ID: {run_id}")
 
-# Test the chat endpoint
-response = client.chat(run_id=run_id, model="llama3.1", messages=[{"role": "user", "content": "This is a test message. Please confirm."}], stream=True)
+# Test the chat endpoint with serialized messages
+response = client.chat(run_id=run_id, model="llama3.1", messages=serialized_messages, stream=True)
 
+# Accumulate and process the response content
+buffer = ""
 for chunk in response:
-    print(chunk, end='', flush=True)
+    buffer += chunk
+    while True:
+        try:
+            json_obj, index = json.JSONDecoder().raw_decode(buffer)
+            buffer = buffer[index:].lstrip()
+            if 'message' in json_obj and json_obj['message']['role'] == 'assistant':
+                # Ensure to replace newline characters to make it more readable
+                assistant_content = json_obj['message']['content'].replace("\n", " ")
+                print(f"Assistant: {assistant_content}")
+        except json.JSONDecodeError:
+            break  # Exit the loop to continue accumulating chunks
 
-print(response)
+print("Done processing response")

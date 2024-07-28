@@ -1,7 +1,7 @@
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
-from models.models import Thread, User
-from api.v1.schemas import ThreadCreate, ThreadReadDetailed, UserBase
+from models.models import Thread, User, Message
+from api.v1.schemas import ThreadCreate, ThreadReadDetailed, UserBase, MessageRead
 from services.identifier_service import IdentifierService
 import json
 import time
@@ -30,6 +30,22 @@ class ThreadService:
 
         self.db.commit()
         self.db.refresh(db_thread)
+
+        participants = [UserBase.from_orm(user) for user in db_thread.participants]
+
+        return ThreadReadDetailed(
+            id=db_thread.id,
+            created_at=db_thread.created_at,
+            meta_data=json.loads(db_thread.meta_data),  # Convert JSON string back to dict
+            object=db_thread.object,
+            tool_resources=json.loads(db_thread.tool_resources),  # Convert JSON string back to dict
+            participants=participants  # Include participants in the response
+        )
+
+    def get_thread(self, thread_id: str) -> ThreadReadDetailed:
+        db_thread = self.db.query(Thread).filter(Thread.id == thread_id).first()
+        if not db_thread:
+            raise HTTPException(status_code=404, detail="Thread not found")
 
         participants = [UserBase.from_orm(user) for user in db_thread.participants]
 

@@ -43,10 +43,10 @@ class Content(BaseModel):
 
 class MessageCreate(BaseModel):
     content: List[Content]
-    role: str
     thread_id: str
     sender_id: str
     meta_data: Optional[Dict[str, Any]] = {}  # updated field name
+    role: str = "user"  # Force the role to be 'user'
 
 class MessageRead(BaseModel):
     id: str
@@ -63,6 +63,7 @@ class MessageRead(BaseModel):
     run_id: Optional[str]
     status: Optional[str]
     thread_id: str
+    sender_id: str  # Added sender_id field
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -113,6 +114,7 @@ class AssistantCreate(BaseModel):
     top_p: Optional[float] = 1.0
     temperature: Optional[float] = 1.0
     response_format: Optional[str] = "auto"
+
 
 class AssistantRead(BaseModel):
     id: str
