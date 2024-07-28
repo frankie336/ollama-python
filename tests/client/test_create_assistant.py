@@ -1,4 +1,4 @@
-from clients.assistant_client import AssistantService
+from new_clients.assistant_client import AssistantService
 import os
 
 base_url = "http://localhost:8000"

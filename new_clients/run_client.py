@@ -2,6 +2,7 @@ import httpx
 import time
 from typing import List, Dict, Any, Optional
 
+
 class RunService:
     def __init__(self, base_url: str, api_key: str):
         self.base_url = base_url
@@ -67,5 +68,37 @@ class RunService:
 
     def delete_run(self, run_id: str) -> Dict[str, Any]:
         response = self.client.delete(f"/v1/runs/{run_id}")
+        response.raise_for_status()
+        return response.json()
+
+    def generate(self, run_id: str, model: str, prompt: str, stream: bool = False) -> Dict[str, Any]:
+        run = self.retrieve_run(run_id)
+        response = self.client.post(
+            "/api/generate",
+            json={
+                "model": model,
+                "prompt": prompt,
+                "stream": stream,
+                "context": run["meta_data"].get("context", []),
+                "temperature": run["temperature"],
+                "top_p": run["top_p"]
+            }
+        )
+        response.raise_for_status()
+        return response.json()
+
+    def chat(self, run_id: str, model: str, messages: List[Dict[str, Any]], stream: bool = False) -> Dict[str, Any]:
+        run = self.retrieve_run(run_id)
+        response = self.client.post(
+            "/api/chat",
+            json={
+                "model": model,
+                "messages": messages,
+                "stream": stream,
+                "context": run["meta_data"].get("context", []),
+                "temperature": run["temperature"],
+                "top_p": run["top_p"]
+            }
+        )
         response.raise_for_status()
         return response.json()

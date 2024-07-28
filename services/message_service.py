@@ -61,4 +61,24 @@ class MessageService:
             thread_id=db_message.thread_id
         )
 
-    # Other service methods...
+    def retrieve_message(self, message_id: str) -> MessageRead:
+        db_message = self.db.query(Message).filter(Message.id == message_id).first()
+        if not db_message:
+            raise HTTPException(status_code=404, detail="Message not found")
+
+        return MessageRead(
+            id=db_message.id,
+            assistant_id=db_message.assistant_id,
+            attachments=db_message.attachments,
+            completed_at=db_message.completed_at,
+            content=db_message.content,
+            created_at=db_message.created_at,
+            incomplete_at=db_message.incomplete_at,
+            incomplete_details=db_message.incomplete_details,
+            meta_data=json.loads(db_message.meta_data),  # Convert JSON string back to dict
+            object=db_message.object,
+            role=db_message.role,
+            run_id=db_message.run_id,
+            status=db_message.status,
+            thread_id=db_message.thread_id
+        )

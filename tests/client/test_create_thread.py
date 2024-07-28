@@ -1,8 +1,8 @@
 import pytest
 import os
-from clients.thread_client import ThreadService
+from new_clients.thread_client import ThreadService
 
-from clients.user_client import UserService  # Assume you have a UserService client
+from new_clients.user_client import UserService  # Assume you have a UserService client
 
 base_url = "http://localhost:8000"
 api_key = os.getenv("API_KEY")  # Make sure to set this in your environment
