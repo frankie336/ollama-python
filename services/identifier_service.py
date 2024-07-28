@@ -1,7 +1,6 @@
 import random
 import string
 
-
 class IdentifierService:
     @staticmethod
     def generate_id(prefix: str, length: int = 22) -> str:
@@ -40,6 +39,11 @@ class IdentifierService:
         """Generate a custom ID with a given prefix."""
         return IdentifierService.generate_id(prefix)
 
+    @staticmethod
+    def generate_assistant_id() -> str:
+        """Generate an assistant ID in the specified format."""
+        return IdentifierService.generate_id("asst")
+
 # Example usage:
 if __name__ == "__main__":
     print(IdentifierService.generate_thread_id())
@@ -48,3 +52,4 @@ if __name__ == "__main__":
     print(IdentifierService.generate_project_id())
     print(IdentifierService.generate_task_id())
     print(IdentifierService.generate_custom_id("custom"))
+    print(IdentifierService.generate_assistant_id())

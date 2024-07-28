@@ -101,3 +101,30 @@ class Run(BaseModel):
     tool_resources: Dict[str, Any]
 
     model_config = ConfigDict(from_attributes=True)
+
+class Tool(BaseModel):
+    type: str
+
+
+class AssistantBase(BaseModel):
+    id: str
+    object: str = "assistant"
+    created_at: int
+    name: str
+    description: Optional[str] = None
+    model: str
+    instructions: str
+    tools: List[Tool]
+    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    top_p: float = 1.0
+    temperature: float = 1.0
+    response_format: str = "auto"
+
+    class Config:
+        orm_mode = True
+
+class AssistantCreate(AssistantBase):
+    pass
+
+class AssistantRead(AssistantBase):
+    pass

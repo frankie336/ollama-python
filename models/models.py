@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Boolean, JSON, DateTime, Table, ForeignKey
+from sqlalchemy import Column, String, Integer, Boolean, JSON, DateTime, Table, ForeignKey, Float
 from sqlalchemy.orm import declarative_base, relationship
 import time
 
@@ -79,3 +79,19 @@ class Run(Base):
     temperature = Column(Integer, nullable=True)
     top_p = Column(Integer, nullable=True)
     tool_resources = Column(JSON, nullable=True)
+
+class Assistant(Base):
+    __tablename__ = "assistants"
+
+    id = Column(String(64), primary_key=True, index=True)
+    object = Column(String(64), default="assistant")
+    created_at = Column(Integer, nullable=False)
+    name = Column(String(128), nullable=False)
+    description = Column(String(512), nullable=True)
+    model = Column(String(64), nullable=False)
+    instructions = Column(String(1024), nullable=False)
+    tools = Column(JSON, nullable=False, default=[])
+    metadata = Column(JSON, nullable=True, default={})
+    top_p = Column(Float, nullable=False, default=1.0)
+    temperature = Column(Float, nullable=False, default=1.0)
+    response_format = Column(String(64), nullable=False, default="auto")

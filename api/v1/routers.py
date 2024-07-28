@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from api.v1.schemas import UserCreate, UserRead, UserUpdate, ThreadCreate, ThreadRead, MessageCreate, MessageRead, Run
+from api.v1.schemas import UserCreate, UserRead, UserUpdate, ThreadCreate, ThreadRead, MessageCreate, MessageRead, Run, AssistantCreate, AssistantRead
 from db.database import get_db
 from services.user_service import UserService
 from services.thread_service import ThreadService
 from services.message_service import MessageService
 from services.run_service import RunService
+from services.identifier_service import IdentifierService
+from services.assistant_service import AssistantService
 
 router = APIRouter()
 
@@ -58,3 +60,15 @@ def create_run(run: Run, db: Session = Depends(get_db)):
 def get_run(run_id: str, db: Session = Depends(get_db)):
     run_service = RunService(db)
     return run_service.get_run(run_id)
+
+# Assistant routes
+@router.post("/assistants", response_model=AssistantRead)
+def create_assistant(assistant: AssistantCreate, db: Session = Depends(get_db)):
+    assistant.id = IdentifierService.generate_assistant_id()  # Generate assistant ID
+    assistant_service = AssistantService(db)
+    return assistant_service.create_assistant(assistant)
+
+@router.get("/assistants/{assistant_id}", response_model=AssistantRead)
+def get_assistant(assistant_id: str, db: Session = Depends(get_db)):
+    assistant_service = AssistantService(db)
+    return assistant_service.get_assistant(assistant_id)
