@@ -4,6 +4,7 @@ from api.app import create_test_app
 app = create_test_app()
 client = TestClient(app)
 
+
 def test_create_assistant():
     assistant_data = {
         "name": "HR Helper",
@@ -41,6 +42,7 @@ def test_create_assistant():
     # Store the assistant ID for the get test
     return assistant["id"]
 
+
 def test_get_assistant():
     assistant_id = test_create_assistant()
     response = client.get(f"/v1/assistants/{assistant_id}")
@@ -60,6 +62,7 @@ def test_get_assistant():
     assert assistant["top_p"] == 1.0
     assert assistant["temperature"] == 1.0
     assert assistant["response_format"] == "auto"
+
 
 if __name__ == "__main__":
     test_create_assistant()
