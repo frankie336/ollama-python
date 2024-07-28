@@ -322,7 +322,6 @@ class RunService:
         self.base_url = base_url
         self.api_key = api_key
         self.client = httpx.Client(base_url=base_url, headers={"Authorization": f"Bearer {api_key}"})
-        logging_utility.info("Initialized RunService with base_url: %s", base_url)
 
     def create_run(self, assistant_id: str, thread_id: str, instructions: str, meta_data: Optional[Dict[str, Any]] = {}) -> Dict[str, Any]:
         run_data = {
@@ -355,44 +354,38 @@ class RunService:
             "top_p": 0.9,
             "tool_resources": {}
         }
-        logging_utility.info("Creating run with data: %s", run_data)
         response = self.client.post("/v1/runs", json=run_data)
-        logging_utility.info("Request payload: %s", run_data)
-        logging_utility.info("Response status code: %s", response.status_code)
-        logging_utility.info("Response text: %s", response.text)
+        print(f"Request payload: {run_data}")
+        print(f"Response status code: {response.status_code}")
+        print(f"Response text: {response.text}")
         response.raise_for_status()
         return response.json()
 
     def retrieve_run(self, run_id: str) -> Dict[str, Any]:
-        logging_utility.info("Retrieving run with ID: %s", run_id)
         response = self.client.get(f"/v1/runs/{run_id}")
         response.raise_for_status()
         return response.json()
 
     def update_run(self, run_id: str, **updates) -> Dict[str, Any]:
-        logging_utility.info("Updating run with ID: %s with updates: %s", run_id, updates)
         response = self.client.put(f"/v1/runs/{run_id}", json=updates)
         response.raise_for_status()
         return response.json()
 
     def list_runs(self, limit: int = 20, order: str = "asc") -> List[Dict[str, Any]]:
         params = {"limit": limit, "order": order}
-        logging_utility.info("Listing runs with params: %s", params)
         response = self.client.get("/v1/runs", params=params)
         response.raise_for_status()
         return response.json()
 
     def delete_run(self, run_id: str) -> Dict[str, Any]:
-        logging_utility.info("Deleting run with ID: %s", run_id)
         response = self.client.delete(f"/v1/runs/{run_id}")
         response.raise_for_status()
         return response.json()
 
     def generate(self, run_id: str, model: str, prompt: str, stream: bool = False) -> Dict[str, Any]:
-        logging_utility.info("Generating with run ID: %s, model: %s, prompt: %s", run_id, model, prompt)
         run = self.retrieve_run(run_id)
         response = self.client.post(
-            "/v1/generate",
+            "/api/generate",
             json={
                 "model": model,
                 "prompt": prompt,
@@ -406,8 +399,7 @@ class RunService:
         response.raise_for_status()
         return response.json()
 
-    def chat(self, run_id: str, model: str, messages: List[Dict[str, Any]], stream: bool = False) -> Union[Dict[str, Any], Iterator[Dict[str, Any]]]:
-        logging_utility.info("Chatting with run ID: %s, model: %s, messages: %s", run_id, model, messages)
+    def chat(self, run_id: str, model: str, messages: List[Dict[str, Any]], stream: bool = False) -> Union[httpx.Response, Iterator[Dict[str, Any]]]:
         run = self.retrieve_run(run_id)
         response = self.client.post(
             "/v1/chat",
@@ -423,11 +415,14 @@ class RunService:
         )
         response.raise_for_status()
         if stream:
-            logging_utility.info("Streaming chat response")
-            return self.client.stream("POST", "/v1/chat", json={"model": model, "messages": messages, "stream": stream})
+            return response.iter_lines()
         return response.json()
 
 # OllamaClient class
+
+
+
+
 
 class OllamaClient(BaseClient):
     def __init__(self, base_url: str, api_key: str, run_service: RunService):

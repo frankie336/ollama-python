@@ -55,7 +55,9 @@ run_id = run["id"]
 print(f"Created run with ID: {run_id}")
 
 # Test the chat endpoint
-response = client.chat(run_id=run_id, model="llama3.1", messages=[{"role": "user", "content": "I need to solve the equation `3x + 11 = 14`. Can you help me?"}], stream=True)
+response = client.chat(run_id=run_id, model="llama3.1", messages=[{"role": "user", "content": "This is a test message. Please confirm."}], stream=True)
 
-for chunk in response.iter_lines():
-    print(chunk.decode('utf-8'), end='', flush=True)
+for chunk in response:
+    print(chunk, end='', flush=True)
+
+print(response)

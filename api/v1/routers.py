@@ -26,9 +26,12 @@ async def forward_to_ollama(path: str, payload: Dict[str, Any], stream: bool = F
             response.raise_for_status()
             if stream:
                 async for line in response.aiter_lines():
+                    logging_utility.info("Streaming response line: %s", line)
                     yield line
             else:
-                pass
+                result = response.json()
+                logging_utility.info("Response JSON: %s", result)
+                yield result
         except httpx.HTTPStatusError as e:
             logging_utility.error("HTTPStatusError in forward_to_ollama: %s", str(e))
             raise
@@ -48,20 +51,17 @@ async def generate_endpoint(payload: Dict[str, Any]):
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 # Chat endpoint
-# Chat endpoint
+from fastapi.responses import StreamingResponse, JSONResponse
+
 @router.post("/chat")
 async def chat_endpoint(payload: Dict[str, Any]):
     logging_utility.info("Received request at /v1/chat with payload: %s", payload)
     try:
         if payload.get("stream", False):
-            async def event_stream():
-                async for line in forward_to_ollama("/api/chat", payload, stream=True):
-                    yield f"data: {line}\n\n"
-
-            return StreamingResponse(event_stream(), media_type="text/event-stream")
+            return StreamingResponse(forward_to_ollama("/api/chat", payload, stream=True), media_type="application/json")
         else:
-            result = await forward_to_ollama("/api/chat", payload)
-            return result
+            result = [item async for item in forward_to_ollama("/api/chat", payload)]
+            return JSONResponse(content=result[0] if result else {})
     except Exception as e:
         logging_utility.error("Error in chat_endpoint: %s", str(e))
         raise HTTPException(status_code=500, detail="Internal Server Error")
