@@ -6,7 +6,6 @@ from services.user_service import UserService
 from services.thread_service import ThreadService
 from services.message_service import MessageService
 from services.run_service import RunService
-from services.identifier_service import IdentifierService
 from services.assistant_service import AssistantService
 
 router = APIRouter()
@@ -64,7 +63,6 @@ def get_run(run_id: str, db: Session = Depends(get_db)):
 # Assistant routes
 @router.post("/assistants", response_model=AssistantRead)
 def create_assistant(assistant: AssistantCreate, db: Session = Depends(get_db)):
-    assistant.id = IdentifierService.generate_assistant_id()  # Generate assistant ID
     assistant_service = AssistantService(db)
     return assistant_service.create_assistant(assistant)
 

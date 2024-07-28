@@ -26,7 +26,6 @@ class ThreadRead(BaseModel):
     meta_data: Dict[str, Any]  # updated field name
     object: str
     tool_resources: Dict[str, Any]
-    participants: List[UserBase]  # Include participants in the ThreadRead
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -35,6 +34,8 @@ class ThreadParticipant(UserBase):
 
 class ThreadReadDetailed(ThreadRead):
     participants: List[UserBase]  # This is only for detailed views if needed
+
+    model_config = ConfigDict(from_attributes=True)
 
 class Content(BaseModel):
     text: Dict[str, Any]
@@ -102,29 +103,29 @@ class Run(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-class Tool(BaseModel):
-    type: str
-
-
-class AssistantBase(BaseModel):
-    id: str
-    object: str = "assistant"
-    created_at: int
+class AssistantCreate(BaseModel):
     name: str
     description: Optional[str] = None
     model: str
-    instructions: str
-    tools: List[Tool]
-    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict)
-    top_p: float = 1.0
-    temperature: float = 1.0
-    response_format: str = "auto"
+    instructions: Optional[str] = None
+    tools: Optional[List[Tool]] = None
+    meta_data: Optional[Dict[str, Any]] = {}
+    top_p: Optional[float] = 1.0
+    temperature: Optional[float] = 1.0
+    response_format: Optional[str] = "auto"
 
-    class Config:
-        orm_mode = True
+class AssistantRead(BaseModel):
+    id: str
+    object: str
+    created_at: int
+    name: str
+    description: Optional[str]
+    model: str
+    instructions: Optional[str]
+    tools: Optional[List[Tool]]
+    meta_data: Dict[str, Any]
+    top_p: float
+    temperature: float
+    response_format: str
 
-class AssistantCreate(AssistantBase):
-    pass
-
-class AssistantRead(AssistantBase):
-    pass
+    model_config = ConfigDict(from_attributes=True)

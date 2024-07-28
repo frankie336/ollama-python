@@ -5,7 +5,6 @@ import time
 app = create_test_app()
 client = TestClient(app)
 
-
 def create_user(name: str):
     response = client.post("/v1/users", json={"name": name})
     if response.status_code == 200:
@@ -14,7 +13,6 @@ def create_user(name: str):
     else:
         print(f"Failed to create user '{name}': {response.status_code} {response.json()}")
         return None
-
 
 def create_thread(participant_ids: list):
     thread_data = {
@@ -28,21 +26,19 @@ def create_thread(participant_ids: list):
         print(f"Failed to create thread: {response.status_code} {response.json()}")
         return None
 
-
 def create_message(thread_id: str, content: list, role: str, sender_id: str):
     message_data = {
         "content": content,
         "role": role,
         "thread_id": thread_id,
         "sender_id": sender_id,  # Add sender_id to the message data
-        "msg_metadata": {}
+        "meta_data": {}
     }
     response = client.post("/v1/messages", json=message_data)
     if response.status_code == 200:
         print(f"Message created successfully: {response.json()}")
     else:
         print(f"Failed to create message: {response.status_code} {response.json()}")
-
 
 def create_run(assistant_id: str, thread_id: str, instructions: str):
     run_data = {
@@ -83,7 +79,6 @@ def create_run(assistant_id: str, thread_id: str, instructions: str):
         print(f"Failed to create run: {response.status_code} {response.json()}")
         return None
 
-
 def get_run(run_id: str):
     response = client.get(f"/v1/runs/{run_id}")
     if response.status_code == 200:
@@ -93,6 +88,25 @@ def get_run(run_id: str):
         print(f"Failed to retrieve run: {response.status_code} {response.json()}")
         return None
 
+def create_assistant(name: str, description: str, model: str, instructions: str, tools: list):
+    assistant_data = {
+        "name": name,
+        "description": description,
+        "model": model,
+        "instructions": instructions,
+        "tools": tools,
+        "meta_data": {},
+        "top_p": 1.0,
+        "temperature": 1.0,
+        "response_format": "auto"
+    }
+    response = client.post("/v1/assistants", json=assistant_data)
+    if response.status_code == 200:
+        print(f"Assistant '{name}' created successfully: {response.json()}")
+        return response.json()
+    else:
+        print(f"Failed to create assistant '{name}': {response.status_code} {response.json()}")
+        return None
 
 if __name__ == "__main__":
     # Create users
@@ -114,13 +128,21 @@ if __name__ == "__main__":
             }]
             create_message(thread['id'], content, "user", user1['id'])  # Pass user1's id as sender_id
 
-            # Create a run
-            instructions = "Solve the equation and provide the solution."
-            run = create_run(user1['id'], thread['id'], instructions)
+            # Create an assistant
+            tools = [{"type": "file_search"}]
+            assistant = create_assistant("Math Assistant", "A bot to help solve math problems.", "gpt-4", "Help solve math problems.", tools)
+            if assistant:
+                # Create a run
+                instructions = "Solve the equation and provide the solution."
+                run = create_run(assistant['id'], thread['id'], instructions)
 
-            if run:
-                # Retrieve the created run
-                get_run(run['id'])
+                if run:
+                    # Retrieve the created run
+                    get_run(run['id'])
+                else:
+                    print("Could not create run. Aborting.")
+            else:
+                print("Could not create assistant. Aborting run creation.")
         else:
             print("Could not create thread. Aborting message and run creation.")
     else:
