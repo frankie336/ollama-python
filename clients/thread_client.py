@@ -14,6 +14,10 @@ class ThreadService:
             "meta_data": meta_data
         }
         response = self.client.post("/v1/threads", json=thread_data)
+        if response.status_code != 200:
+            print("Failed to create thread:")
+            print("Status code:", response.status_code)
+            print("Response text:", response.text)
         response.raise_for_status()
         return response.json()
 
