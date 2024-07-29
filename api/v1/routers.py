@@ -64,11 +64,18 @@ async def generate_endpoint(payload: Dict[str, Any]):
         logging_utility.error("Error in generate_endpoint: %s", str(e))
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
+
 @router.post("/chat")
 async def chat_endpoint(payload: Dict[str, Any], db: Session = Depends(get_db)):
-    logging_utility.info("Received request at /chat with payload: %s", payload)
+    logging_utility.info("Received request at /chat with payload: %s", json.dumps(payload, indent=2))
     message_service = MessageService(db)
+
     try:
+        thread_id = payload.get('thread_id')
+        if not thread_id:
+            logging_utility.error("Missing 'thread_id' in payload: %s", payload)
+            raise HTTPException(status_code=400, detail="Missing 'thread_id' in payload")
+
         if payload.get("stream", False):
             async def stream_response():
                 complete_message = ""
@@ -83,10 +90,7 @@ async def chat_endpoint(payload: Dict[str, Any], db: Session = Depends(get_db)):
 
                             logging_utility.info("Streaming response chunk: %s", assistant_content)
 
-                            if 'thread_id' in payload:
-                                message_service.save_assistant_message(payload['thread_id'], complete_message)
-                            else:
-                                logging_utility.error("Missing 'thread_id' in payload: %s", payload)
+                            message_service.save_assistant_message(thread_id, assistant_content)
                     except json.JSONDecodeError:
                         logging_utility.error("Failed to decode line: %s", line)
                         continue
@@ -100,17 +104,14 @@ async def chat_endpoint(payload: Dict[str, Any], db: Session = Depends(get_db)):
                 for response in result:
                     if 'message' in response and response['message']['role'] == 'assistant':
                         assistant_content = response['message']['content']
-                        logging_utility.info("Saving assistant message for thread ID: %s", payload.get('thread_id'))
-                        if 'thread_id' in payload:
-                            message_service.save_assistant_message(payload['thread_id'], assistant_content)
-                        else:
-                            logging_utility.error("Missing 'thread_id' in payload: %s", payload)
+                        logging_utility.info("Saving assistant message for thread ID: %s", thread_id)
+                        message_service.save_assistant_message(thread_id, assistant_content)
             return JSONResponse(content=json.loads(result[0]) if result else {})
     except Exception as e:
         logging_utility.error("Error in chat_endpoint: %s", str(e))
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
-# The rest of your routes remain unchanged
+
 @router.post("/users", response_model=UserRead)
 def create_user(user: UserCreate = None, db: Session = Depends(get_db)):
     user_service = UserService(db)
