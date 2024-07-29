@@ -1,8 +1,8 @@
-import asyncio
-import time
-
-import httpx
 import json
+import time
+import asyncio
+import httpx
+import argparse
 from services.loggin_service import LoggingUtility
 
 logging_utility = LoggingUtility()
@@ -123,6 +123,7 @@ class OllamaClient:
         except Exception as e:
             logging_utility.error(f"Error creating run: {e}")
             raise
+
     async def chat(self, run_id, model, messages, stream=True):
         try:
             response = await self.client.post("/chat", json={
@@ -136,8 +137,6 @@ class OllamaClient:
         except Exception as e:
             logging_utility.error(f"Error in chat: {e}")
             raise
-
-client = OllamaClient(base_url=base_url, api_key=api_key)
 
 async def process_stream(response_generator):
     complete_message = ""
@@ -164,58 +163,82 @@ async def process_stream(response_generator):
 
     return complete_message
 
-async def main():
+async def setup_assistant(client, assistant_name, model):
+    assistant = await client.create_assistant(
+        name=assistant_name,
+        description=f"A Helpful {assistant_name}",
+        model=model,
+        instructions=f"You are a {assistant_name}. Provide helpful responses.",
+        tools=[{"type": "code_interpreter"}]
+    )
+    assistant_id = assistant['id']
+    print(f"Assistant created with ID: {assistant_id}")
+    return assistant_id
+
+async def setup_user(client, user_name):
+    user = await client.create_user(name=user_name)
+    user_id = user["id"]
+    print(f"User created with ID: {user_id}")
+    return user_id
+
+async def setup_thread(client, user_id, thread_id=None):
+    if thread_id:
+        print(f"Using provided thread ID: {thread_id}")
+        return thread_id
+    new_thread = await client.create_thread(user_id)
+    thread_id = new_thread["id"]
+    print(f"Created new thread with ID: {thread_id}")
+    return thread_id
+
+async def setup_message(client, thread_id, user_id, initial_message):
+    content = [{"text": {"annotations": [], "value": initial_message}, "type": "text"}]
+    new_message = await client.create_message(thread_id=thread_id, content=content, role="user", sender_id=user_id)
+    message_id = new_message["id"]
+    print(f"Created message with ID: {message_id}")
+    return message_id
+
+async def retrieve_messages(client, thread_id, user_id):
+    thread_messages = await client.list_messages(thread_id=thread_id)
+    print(f"Retrieved all messages in the thread: {json.dumps(thread_messages, indent=2)}")  # Print the entire response for debugging
+    serialized_messages = [
+        {"role": "user" if message["sender_id"] == user_id else "assistant",
+         "content": message["content"][0]["text"]["value"]}
+        for message in thread_messages
+    ]
+    print(f"Serialized messages: {json.dumps(serialized_messages, indent=2)}")  # Print serialized messages for debugging
+    return serialized_messages
+
+async def main(assistant_name, user_name, initial_message, model, thread_id):
+    client = OllamaClient(base_url=base_url, api_key=api_key)
+
     try:
         # Test server connection
         async with httpx.AsyncClient() as test_client:
             response = await test_client.get(f"{base_url.rsplit('/v1', 1)[0]}/")
-            logging_utility.info(f"Server connection test: {response.status_code}")
+            print(f"Server connection test: {response.status_code}")
 
-        # Create an assistant
-        assistant = await client.create_assistant(
-            name="Mathy",
-            description="A Helpful Math tutor",
-            model="llama3.1",
-            instructions="You are a personal math tutor. Write and run code to answer math questions.",
-            tools=[{"type": "code_interpreter"}]
-        )
-        assistant_id = assistant['id']
-        print(f"Assistant created with ID: {assistant_id}")
+        # Setup assistant
+        assistant_id = await setup_assistant(client, assistant_name, model)
 
-        # Create a user
-        user1 = await client.create_user(name="User 1")
-        user1_id = user1["id"]
+        # Setup user
+        user_id = await setup_user(client, user_name)
 
-        # Create a thread
-        new_thread = await client.create_thread(user1_id)
-        thread_id = new_thread["id"]
-        print(f"Created thread with ID: {thread_id}")
+        # Setup thread
+        thread_id = await setup_thread(client, user_id, thread_id)
 
-        # Create a message
-        content = [{"text": {"annotations": [], "value": "Send me a poem"}, "type": "text"}]
-        new_message = await client.create_message(thread_id=thread_id, content=content, role="user", sender_id=user1_id)
-        message_id = new_message["id"]
-        print(f"Created message with ID: {message_id}")
+        # Create initial message
+        await setup_message(client, thread_id, user_id, initial_message)
 
         # Retrieve all messages in the thread
-        thread_messages = await client.list_messages(thread_id=thread_id)
-        print(f"Retrieved all messages in the thread: {thread_messages}")
+        serialized_messages = await retrieve_messages(client, thread_id, user_id)
 
-        # Serialize the messages for the chat endpoint
-        serialized_messages = [
-            {"role": "user" if message["sender_id"] == user1_id else "assistant",
-             "content": message["content"][0]["text"]["value"]}
-            for message in thread_messages
-        ]
-        print(f"Serialized messages: {serialized_messages}")
-
-        # Set up the run
+        # Setup and run the chat
         run = await client.create_run(assistant_id=assistant_id, thread_id=thread_id, instructions="")
         run_id = run["id"]
         print(f"Created run with ID: {run_id}")
 
         # Chat
-        response_generator = await client.chat(run_id=run_id, model="llama3.1", messages=serialized_messages, stream=True)
+        response_generator = await client.chat(run_id=run_id, model=model, messages=serialized_messages, stream=True)
         complete_message = await process_stream(response_generator)
         print(f"\nFinal Complete Assistant Message:\n{complete_message}")
 
@@ -228,5 +251,32 @@ async def main():
     except Exception as e:
         print(f"Unexpected error: {str(e)}")
 
+def run(assistant_name=None, user_name=None, initial_message=None, model=None, thread_id=None):
+    if assistant_name is None:
+        assistant_name = "Math Tutor"
+    if user_name is None:
+        user_name = "Student"
+    if initial_message is None:
+        initial_message = "This is a tes"
+    if model is None:
+        model = "llama3.1"
+
+    asyncio.run(main(assistant_name, user_name, initial_message, model, thread_id))
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    parser = argparse.ArgumentParser(description="Run Ollama Client")
+    parser.add_argument("--assistant", default=None, help="Name of the assistant")
+    parser.add_argument("--user", default=None, help="Name of the user")
+    parser.add_argument("--message", default=None, help="Initial message")
+    parser.add_argument("--model", default=None, help="Model to use")
+    parser.add_argument("--thread_id", default=None, help="Existing thread ID to use")
+
+    args = parser.parse_args()
+
+    run(
+        assistant_name=args.assistant,
+        user_name=args.user,
+        initial_message=args.message,
+        model=args.model,
+        thread_id=args.thread_id
+    )
