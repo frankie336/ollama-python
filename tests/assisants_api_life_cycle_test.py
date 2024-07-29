@@ -224,6 +224,10 @@ async def main(assistant_name, user_name, initial_message, model, thread_id):
         user_id = await setup_user(client, user_name)
 
         # Setup thread
+        if thread_id:
+            print(f"Using provided thread ID: {thread_id}")
+        else:
+            print("Creating a new thread...")
         thread_id = await setup_thread(client, user_id, thread_id)
 
         # Create initial message
@@ -257,7 +261,7 @@ def run(assistant_name=None, user_name=None, initial_message=None, model=None, t
     if user_name is None:
         user_name = "Student"
     if initial_message is None:
-        initial_message = "This is a tes"
+        initial_message = "This is a test"
     if model is None:
         model = "llama3.1"
 
@@ -270,7 +274,6 @@ if __name__ == "__main__":
     parser.add_argument("--message", default=None, help="Initial message")
     parser.add_argument("--model", default=None, help="Model to use")
     parser.add_argument("--thread_id", default=None, help="Existing thread ID to use")
-
     args = parser.parse_args()
 
     run(
@@ -278,5 +281,5 @@ if __name__ == "__main__":
         user_name=args.user,
         initial_message=args.message,
         model=args.model,
-        thread_id=args.thread_id
+        thread_id="thread_rOH64U6xYL0o37WJSbN6Z9"
     )
