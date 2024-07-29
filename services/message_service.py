@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional, Dict, Any
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from models.models import Message, Thread, User
@@ -8,31 +8,24 @@ import json
 import time
 import logging
 
+# Initialize logging
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-handler = logging.StreamHandler()
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-handler.setFormatter(formatter)
-logger.addHandler(handler)
-
 
 class MessageService:
     def __init__(self, db: Session):
         self.db = db
+        self.message_chunks: Dict[str, List[str]] = {}  # Temporary storage for message chunks
 
     def create_message(self, message: MessageCreate) -> MessageRead:
-        logger.info("Creating message with content: %s", message.content)
-
         # Check if thread exists
         db_thread = self.db.query(Thread).filter(Thread.id == message.thread_id).first()
         if not db_thread:
-            logger.error("Thread not found: %s", message.thread_id)
             raise HTTPException(status_code=404, detail="Thread not found")
 
         # Check if sender exists
         db_user = self.db.query(User).filter(User.id == message.sender_id).first()
         if not db_user:
-            logger.error("Sender not found: %s", message.sender_id)
             raise HTTPException(status_code=404, detail="Sender not found")
 
         db_message = Message(
@@ -57,8 +50,6 @@ class MessageService:
         self.db.commit()
         self.db.refresh(db_message)
 
-        logger.info("Message created with ID: %s", db_message.id)
-
         return MessageRead(
             id=db_message.id,
             assistant_id=db_message.assistant_id,
@@ -78,14 +69,9 @@ class MessageService:
         )
 
     def retrieve_message(self, message_id: str) -> MessageRead:
-        logger.info("Retrieving message with ID: %s", message_id)
-
         db_message = self.db.query(Message).filter(Message.id == message_id).first()
         if not db_message:
-            logger.error("Message not found: %s", message_id)
             raise HTTPException(status_code=404, detail="Message not found")
-
-        logger.info("Message retrieved with ID: %s", db_message.id)
 
         return MessageRead(
             id=db_message.id,
@@ -106,11 +92,8 @@ class MessageService:
         )
 
     def list_messages(self, thread_id: str, limit: int = 20, order: str = "asc") -> List[MessageRead]:
-        logger.info("Listing messages for thread ID: %s", thread_id)
-
         db_thread = self.db.query(Thread).filter(Thread.id == thread_id).first()
         if not db_thread:
-            logger.error("Thread not found: %s", thread_id)
             raise HTTPException(status_code=404, detail="Thread not found")
 
         query = self.db.query(Message).filter(Message.thread_id == thread_id)
@@ -120,9 +103,6 @@ class MessageService:
             query = query.order_by(Message.created_at.desc())
 
         db_messages = query.limit(limit).all()
-
-        logger.info("Retrieved %d messages for thread ID: %s", len(db_messages), thread_id)
-
         return [
             MessageRead(
                 id=db_message.id,
@@ -144,20 +124,31 @@ class MessageService:
             for db_message in db_messages
         ]
 
-    def save_assistant_message(self, thread_id: str, content: str):
-        logger.info("Saving assistant message for thread ID: %s", thread_id)
+    def save_assistant_message(self, thread_id: str, content: str, is_last_chunk: bool = False) -> Optional[MessageRead]:
+        if thread_id not in self.message_chunks:
+            self.message_chunks[thread_id] = []
+
+        self.message_chunks[thread_id].append(content)
+
+        if not is_last_chunk:
+            return None
+
+        complete_message = ''.join(self.message_chunks[thread_id])
+        del self.message_chunks[thread_id]
 
         db_thread = self.db.query(Thread).filter(Thread.id == thread_id).first()
         if not db_thread:
-            logger.error("Thread not found: %s", thread_id)
             raise HTTPException(status_code=404, detail="Thread not found")
+
+        assistant_id = "assistant_id"  # Set a proper assistant ID
+        sender_id = "assistant"  # Set a fixed sender ID for the assistant
 
         db_message = Message(
             id=IdentifierService.generate_message_id(),
-            assistant_id="assistant_id",  # Set a proper assistant ID
+            assistant_id=assistant_id,
             attachments=[],
             completed_at=int(time.time()),
-            content=[{"text": {"value": content, "annotations": []}, "type": "text"}],
+            content=[{"text": {"value": complete_message, "annotations": []}, "type": "text"}],
             created_at=int(time.time()),
             incomplete_at=None,
             incomplete_details=None,
@@ -167,14 +158,12 @@ class MessageService:
             run_id=None,
             status=None,
             thread_id=thread_id,
-            sender_id=None  # Assistant messages might not need a sender_id
+            sender_id=sender_id  # Use the assistant sender ID
         )
 
         self.db.add(db_message)
         self.db.commit()
         self.db.refresh(db_message)
-
-        logger.info("Assistant message saved with ID: %s", db_message.id)
 
         return MessageRead(
             id=db_message.id,

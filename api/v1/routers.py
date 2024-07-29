@@ -1,10 +1,9 @@
 import json
-from typing import Dict, Any, List
-
+from typing import Dict, Any, AsyncGenerator, List
 import httpx
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import StreamingResponse, JSONResponse
 from sqlalchemy.orm import Session
+from fastapi.responses import StreamingResponse, JSONResponse
 
 from api.v1.schemas import (
     UserCreate, UserRead, UserUpdate, ThreadCreate, ThreadRead, MessageCreate, MessageRead, Run, AssistantCreate,
@@ -22,52 +21,49 @@ logging_utility = LoggingUtility()
 
 router = APIRouter()
 
-# Helper function to forward requests to the Ollama API
+class OllamaClient:
+    def __init__(self, base_url: str):
+        self.base_url = base_url
 
-# Helper function to forward requests to the Ollama API
-async def forward_to_ollama(path: str, payload: Dict[str, Any], stream: bool = False):
-    async with httpx.AsyncClient(base_url="http://localhost:11434") as client:
-        try:
-            response = await client.post(path, json=payload)
-            response.raise_for_status()
-            if stream:
-                async for line in response.aiter_lines():
-                    logging_utility.info("Streaming response line: %s", line)
-                    yield line
-            else:
-                result = response.json()
-                logging_utility.info("Response JSON: %s", result)
-                yield result
-        except httpx.HTTPStatusError as e:
-            logging_utility.error("HTTPStatusError in forward_to_ollama: %s", str(e))
-            raise
-        except Exception as e:
-            logging_utility.error("Exception in forward_to_ollama: %s", str(e))
-            raise
+    async def forward_to_ollama(self, path: str, payload: Dict[str, Any], stream: bool = False) -> AsyncGenerator[str, None]:
+        async with httpx.AsyncClient(base_url=self.base_url) as client:
+            try:
+                response = await client.post(path, json=payload)
+                response.raise_for_status()
+                if stream:
+                    buffer = ""
+                    async for line in response.aiter_lines():
+                        print(f"Streaming response line: {line}")
+                        buffer += line
+                        try:
+                            while buffer:
+                                json_obj, index = json.JSONDecoder().raw_decode(buffer)
+                                buffer = buffer[index:].lstrip()
+                                yield json.dumps(json_obj)
+                        except json.JSONDecodeError:
+                            continue
+                else:
+                    result = response.json()
+                    yield json.dumps(result)
+            except httpx.HTTPStatusError as e:
+                print(f"HTTPStatusError in forward_to_ollama: {str(e)}")
+                raise
+            except Exception as e:
+                print(f"Exception in forward_to_ollama: {str(e)}")
+                raise
 
-
-
-# Generate endpoint
+ollama_client = OllamaClient(base_url="http://localhost:11434")
 
 @router.post("/api/generate")
 async def generate_endpoint(payload: Dict[str, Any]):
     logging_utility.info("Received request at /api/generate with payload: %s", payload)
     try:
-        result = await forward_to_ollama("/api/generate", payload)
-        return result
+        result = await ollama_client.forward_to_ollama("/api/generate", payload)
+        return next(result)
     except Exception as e:
         logging_utility.error("Error in generate_endpoint: %s", str(e))
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
-# Chat endpoint
-
-
-
-from fastapi.responses import StreamingResponse, JSONResponse
-import asyncio
-
-# Chat endpoint
-# Chat endpoint
 @router.post("/chat")
 async def chat_endpoint(payload: Dict[str, Any], db: Session = Depends(get_db)):
     logging_utility.info("Received request at /chat with payload: %s", payload)
@@ -75,24 +71,31 @@ async def chat_endpoint(payload: Dict[str, Any], db: Session = Depends(get_db)):
     try:
         if payload.get("stream", False):
             async def stream_response():
-                async for line in forward_to_ollama("/api/chat", payload, stream=True):
-                    logging_utility.info("Streaming response line: %s", line)
+                complete_message = ""
+                async for line in ollama_client.forward_to_ollama("/api/chat", payload, stream=True):
                     try:
                         json_obj = json.loads(line)
                         if 'message' in json_obj and json_obj['message']['role'] == 'assistant':
                             assistant_content = json_obj['message']['content']
-                            logging_utility.info("Saving assistant message for thread ID: %s", payload.get('thread_id'))
+                            complete_message += assistant_content
+
+                            yield f"data: {json.dumps({'content': assistant_content})}\n\n"
+
+                            logging_utility.info("Streaming response chunk: %s", assistant_content)
+
                             if 'thread_id' in payload:
-                                message_service.save_assistant_message(payload['thread_id'], assistant_content)
+                                message_service.save_assistant_message(payload['thread_id'], complete_message)
                             else:
                                 logging_utility.error("Missing 'thread_id' in payload: %s", payload)
                     except json.JSONDecodeError:
                         logging_utility.error("Failed to decode line: %s", line)
                         continue
-                    yield line.encode('utf-8')  # Ensure the response is a byte stream
-            return StreamingResponse(stream_response(), media_type="application/json")
+
+                yield f"data: {json.dumps({'content': complete_message, 'done': True})}\n\n"
+
+            return StreamingResponse(stream_response(), media_type="text/event-stream")
         else:
-            result = [item async for item in forward_to_ollama("/api/chat", payload)]
+            result = [item async for item in ollama_client.forward_to_ollama("/api/chat", payload)]
             if result:
                 for response in result:
                     if 'message' in response and response['message']['role'] == 'assistant':
@@ -102,15 +105,12 @@ async def chat_endpoint(payload: Dict[str, Any], db: Session = Depends(get_db)):
                             message_service.save_assistant_message(payload['thread_id'], assistant_content)
                         else:
                             logging_utility.error("Missing 'thread_id' in payload: %s", payload)
-            return JSONResponse(content=result[0] if result else {})
+            return JSONResponse(content=json.loads(result[0]) if result else {})
     except Exception as e:
         logging_utility.error("Error in chat_endpoint: %s", str(e))
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
-
-
-
-
+# The rest of your routes remain unchanged
 @router.post("/users", response_model=UserRead)
 def create_user(user: UserCreate = None, db: Session = Depends(get_db)):
     user_service = UserService(db)
@@ -132,7 +132,6 @@ def delete_user(user_id: str, db: Session = Depends(get_db)):
     user_service.delete_user(user_id)
     return {"detail": "User deleted successfully"}
 
-# Thread routes
 @router.post("/threads", response_model=ThreadRead)
 def create_thread(thread: ThreadCreate, db: Session = Depends(get_db)):
     thread_service = ThreadService(db)
@@ -143,7 +142,6 @@ def get_thread(thread_id: str, db: Session = Depends(get_db)):
     thread_service = ThreadService(db)
     return thread_service.get_thread(thread_id)
 
-# Message routes
 @router.post("/messages", response_model=MessageRead)
 def create_message(message: MessageCreate, db: Session = Depends(get_db)):
     message_service = MessageService(db)
@@ -160,7 +158,6 @@ def list_messages(thread_id: str, limit: int = 20, order: str = "asc", db: Sessi
     message_service = MessageService(db)
     return message_service.list_messages(thread_id=thread_id, limit=limit, order=order)
 
-# Run routes
 @router.post("/runs", response_model=Run)
 def create_run(run: Run, db: Session = Depends(get_db)):
     run_service = RunService(db)
@@ -171,7 +168,6 @@ def get_run(run_id: str, db: Session = Depends(get_db)):
     run_service = RunService(db)
     return run_service.get_run(run_id)
 
-# Assistant routes
 @router.post("/assistants", response_model=AssistantRead)
 def create_assistant(assistant: AssistantCreate, db: Session = Depends(get_db)):
     assistant_service = AssistantService(db)
