@@ -11,6 +11,7 @@ logging_utility = LoggingUtility()
 base_url = "http://localhost:8000/v1"  # Updated to include /v1
 api_key = "your_api_key"
 
+
 class OllamaClient:
     def __init__(self, base_url: str, api_key: str):
         self.base_url = base_url
@@ -133,6 +134,7 @@ class OllamaClient:
             logging_utility.error(f"Error in chat: {e}")
             raise
 
+
 async def process_stream(response_generator):
     complete_message = ""
     async for chunk in response_generator:
@@ -158,6 +160,7 @@ async def process_stream(response_generator):
 
     return complete_message
 
+
 async def setup_assistant(client, assistant_name, model):
     assistant = await client.create_assistant(
         name=assistant_name,
@@ -170,11 +173,13 @@ async def setup_assistant(client, assistant_name, model):
     print(f"Assistant created with ID: {assistant_id}")
     return assistant_id
 
+
 async def setup_user(client, user_name):
     user = await client.create_user(name=user_name)
     user_id = user["id"]
     print(f"User created with ID: {user_id}")
     return user_id
+
 
 async def setup_thread(client, user_id, thread_id=None):
     if thread_id:
@@ -185,12 +190,14 @@ async def setup_thread(client, user_id, thread_id=None):
     print(f"Created new thread with ID: {thread_id}")
     return thread_id
 
+
 async def setup_message(client, thread_id, user_id, initial_message, role):
     content = [{"text": {"annotations": [], "value": initial_message}, "type": "text"}]
     new_message = await client.create_message(thread_id=thread_id, content=content, role=role, sender_id=user_id)
     message_id = new_message["id"]
     print(f"Created message with ID: {message_id}")
     return message_id
+
 
 async def retrieve_messages(client, thread_id, user_id):
     thread_messages = await client.list_messages(thread_id=thread_id)
@@ -211,6 +218,7 @@ async def retrieve_messages(client, thread_id, user_id):
     print(
         f"Serialized messages: {json.dumps(serialized_messages, indent=2)}")  # Print serialized messages for debugging
     return serialized_messages
+
 
 async def main(assistant_name, user_name, initial_message, model, thread_id, role):
     client = OllamaClient(base_url=base_url, api_key=api_key)
@@ -269,19 +277,21 @@ async def main(assistant_name, user_name, initial_message, model, thread_id, rol
     except Exception as e:
         print(f"Unexpected error: {str(e)}")
 
+
 def run(assistant_name=None, user_name=None, initial_message=None, model=None, thread_id=None, role=None):
     if assistant_name is None:
         assistant_name = "Math Tutor"
     if user_name is None:
         user_name = "Student"
     if initial_message is None:
-        initial_message = "This is a test"
+        initial_message = "Please confirm the message that I sent before this one "
     if model is None:
         model = "llama3.1"
     if role is None:
         role = "user"
 
     asyncio.run(main(assistant_name, user_name, initial_message, model, thread_id, role))
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run Ollama Client")
@@ -299,6 +309,6 @@ if __name__ == "__main__":
         user_name=args.user,
         initial_message=args.message,
         model=args.model,
-        thread_id="thread_Xf6UhhiVY6m65XbaWbXV9Q",
+        thread_id="thread_gRGGQ9wQA3Lr61fDSXFJxE",
         role=args.role
     )

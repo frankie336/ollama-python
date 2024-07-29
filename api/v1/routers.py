@@ -95,17 +95,23 @@ async def chat_endpoint(payload: Dict[str, Any], db: Session = Depends(get_db)):
                         logging_utility.error("Failed to decode line: %s", line)
                         continue
 
+                # Save the complete message after all chunks are received
+                message_service.save_assistant_message(thread_id, complete_message, is_last_chunk=True)
+
                 yield f"data: {json.dumps({'content': complete_message, 'done': True})}\n\n"
 
             return StreamingResponse(stream_response(), media_type="text/event-stream")
         else:
             result = [item async for item in ollama_client.forward_to_ollama("/api/chat", payload)]
             if result:
+                complete_message = ""
                 for response in result:
                     if 'message' in response and response['message']['role'] == 'assistant':
                         assistant_content = response['message']['content']
-                        logging_utility.info("Saving assistant message for thread ID: %s", thread_id)
-                        message_service.save_assistant_message(thread_id, assistant_content)
+                        complete_message += assistant_content
+                        logging_utility.info("Appending assistant message for thread ID: %s", thread_id)
+                # Save the complete message
+                message_service.save_assistant_message(thread_id, complete_message, is_last_chunk=True)
             return JSONResponse(content=json.loads(result[0]) if result else {})
     except Exception as e:
         logging_utility.error("Error in chat_endpoint: %s", str(e))
