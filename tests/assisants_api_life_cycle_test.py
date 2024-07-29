@@ -299,6 +299,6 @@ if __name__ == "__main__":
         user_name=args.user,
         initial_message=args.message,
         model=args.model,
-        thread_id=args.thread_id,
+        thread_id="thread_Xf6UhhiVY6m65XbaWbXV9Q",
         role=args.role
     )
