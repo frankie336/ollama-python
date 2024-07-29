@@ -1,11 +1,9 @@
 import time
-
 from new_clients.new_ollama_client import OllamaClient
 client = OllamaClient()
 from services.loggin_service import LoggingUtility
 logging_utility = LoggingUtility
-
-from new_clients.streaming_message_client import OllamaClient, setup_user, retrieve_messages, process_stream
+from new_clients.streaming_message_client import StreamingAssistantsClient, setup_user, retrieve_messages, process_stream
 
 
 #create a user
@@ -34,10 +32,13 @@ message = client.create_message(thread_id=thread_id, content=message_content, se
 print(message)
 
 
+# Create Run
+run = client.run_service.create_run(assistant_id=assistant_id,
+                                    thread_id=thread_id,
+                                    instructions='',
+                                    )
 
-
-
-
+run_id = run['id']
 
 
 
@@ -45,7 +46,7 @@ print(message)
 base_url = "http://localhost:8000/v1"
 api_key = "your_api_key"
 # Initialize the OllamaClient
-client = OllamaClient(base_url=base_url, api_key=api_key)
+client = StreamingAssistantsClient(base_url=base_url, api_key=api_key)
 # Create a user (this step is necessary because a thread requires a user)
 user_name = "Student"
 user_id = setup_user(client, user_name)
@@ -54,11 +55,11 @@ print(f"Created user with ID: {user_id}")
 
 
 
-# Set up run
-instructions = ""
-run_data = client.create_run(assistant_id=assistant_id, thread_id=thread_id, instructions=instructions)
-run_id = run_data["id"]
-print(f"Created run with ID: {run_id}")
+
+
+
+
+
 
 
 

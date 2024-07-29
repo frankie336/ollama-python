@@ -10,7 +10,8 @@ logging_utility = LoggingUtility()
 base_url = "http://localhost:8000/v1"
 api_key = "your_api_key"
 
-class OllamaClient:
+
+class StreamingAssistantsClient:
     def __init__(self, base_url: str, api_key: str):
         self.base_url = base_url
         self.api_key = api_key
@@ -46,32 +47,6 @@ class OllamaClient:
             logging_utility.error(f"Error creating user: {e}")
             raise
 
-    def create_thread(self, user_id):
-        try:
-            response = self.client.post("/threads", json={
-                "participant_ids": [user_id],
-                "meta_data": {"topic": "Test Thread"}
-            })
-            response.raise_for_status()
-            return response.json()
-        except Exception as e:
-            logging_utility.error(f"Error creating thread: {e}")
-            raise
-
-    def create_message(self, thread_id, content, role, sender_id):
-        try:
-            response = self.client.post("/messages", json={
-                "thread_id": thread_id,
-                "content": content,
-                "role": role,
-                "sender_id": sender_id
-            })
-            response.raise_for_status()
-            return response.json()
-        except Exception as e:
-            logging_utility.error(f"Error creating message: {e}")
-            raise
-
     def list_messages(self, thread_id):
         try:
             response = self.client.get(f"/threads/{thread_id}/messages")
@@ -79,48 +54,6 @@ class OllamaClient:
             return response.json()
         except Exception as e:
             logging_utility.error(f"Error listing messages: {e}")
-            raise
-
-    def create_run(self, assistant_id, thread_id, instructions):
-        try:
-            current_time = int(time.time())
-            run_data = {
-                "id": f"run_{assistant_id}_{thread_id}",
-                "assistant_id": assistant_id,
-                "thread_id": thread_id,
-                "instructions": instructions,
-                "meta_data": {},
-                "cancelled_at": None,
-                "completed_at": None,
-                "created_at": current_time,
-                "expires_at": current_time + 3600,  # 1 hour from now
-                "failed_at": None,
-                "incomplete_details": None,
-                "last_error": None,
-                "max_completion_tokens": 1000,
-                "max_prompt_tokens": 500,
-                "model": "gpt-4",
-                "object": "run",
-                "parallel_tool_calls": False,
-                "required_action": None,
-                "response_format": "text",
-                "started_at": None,
-                "status": "pending",
-                "tool_choice": "none",
-                "tools": [],
-                "truncation_strategy": {},
-                "usage": None,
-                "temperature": 0.7,
-                "top_p": 0.9,
-                "tool_resources": {}
-            }
-            response = self.client.post("/runs", json=run_data)
-            logging_utility.info(f"Create run response status: {response.status_code}")
-            logging_utility.info(f"Create run response content: {response.text}")
-            response.raise_for_status()
-            return response.json()
-        except Exception as e:
-            logging_utility.error(f"Error creating run: {e}")
             raise
 
     def chat(self, payload):
@@ -132,6 +65,7 @@ class OllamaClient:
         except Exception as e:
             logging_utility.error(f"Error in chat: {e}")
             raise
+
 
 def process_stream(response_generator):
     complete_message = ""
@@ -157,6 +91,7 @@ def process_stream(response_generator):
             print(f"Unexpected chunk format: {chunk}")
 
     return complete_message
+
 
 def setup_assistant(client, assistant_name, model):
     assistant = client.create_assistant(
@@ -216,7 +151,7 @@ def retrieve_messages(client, thread_id, system_message="This is a system messag
     return serialized_messages
 
 def run(assistant_id=None, assistant_name=None, user_name=None, initial_message=None, model=None, thread_id=None, role=None):
-    client = OllamaClient(base_url=base_url, api_key=api_key)
+    client = StreamingAssistantsClient(base_url=base_url, api_key=api_key)
 
     try:
         # Setup assistant

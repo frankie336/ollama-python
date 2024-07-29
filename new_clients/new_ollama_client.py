@@ -2,6 +2,7 @@ from new_clients.user_client import UserService
 from new_clients.assistant_client import AssistantService
 from new_clients.thread_client import ThreadService
 from new_clients.message_client import MessageService
+from new_clients.run_client import RunService
 
 
 class OllamaClient:
@@ -13,6 +14,7 @@ class OllamaClient:
         self.assistant_service = AssistantService(base_url, api_key)
         self.thead_service = ThreadService(base_url, api_key)
         self.message_service = MessageService(base_url, api_key)
+        self.run_service = RunService(base_url, api_key)
 
     def user_service(self):
         return self.user_service
