@@ -17,6 +17,21 @@ services:
     networks:
       - ollama_network
 
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: fastapi_cosmic_catalyst
+    restart: always
+    environment:
+      - DATABASE_URL=mysql://ollama:3e4Qv5uo2Cg31zC1@db:3306/cosmic_catalyst
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    networks:
+      - ollama_network
+
 networks:
   ollama_network:
     driver: bridge
