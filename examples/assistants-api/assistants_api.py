@@ -43,7 +43,6 @@ run = client.run_service.create_run(assistant_id=assistant_id,
                                     )
 run_id = run['id']
 print(run_id)
-time.sleep(1000)
 
 # Define the base URL and API key
 base_url = "http://localhost:9000/v1"

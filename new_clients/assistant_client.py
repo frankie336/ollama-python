@@ -8,7 +8,11 @@ class AssistantService:
         self.api_key = api_key
         self.client = httpx.Client(base_url=base_url, headers={"Authorization": f"Bearer {api_key}"})
 
-    def create_assistant(self, name: str, description: str, model: str, instructions: str, tools: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def create_assistant(self, name: str, description: str, model: str, instructions: str,
+                         tools: List[Dict[str, Any]] = None) -> Dict[str, Any]:
+        if tools is None:
+            tools = []
+
         assistant_data = {
             "name": name,
             "description": description,

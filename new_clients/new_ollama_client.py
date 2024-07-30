@@ -11,8 +11,8 @@ load_dotenv()
 
 
 class OllamaClient:
-    def __init__(self, base_url=None, api_key=None):
-        self.base_url = base_url or os.getenv('BASE_URL')
+    def __init__(self, base_url=os.getenv('ASSISTANTS_BASE_URL'), api_key='your api key'):
+        self.base_url = base_url or os.getenv('ASSISTANTS_BASE_URL')
         self.api_key = api_key or os.getenv('API_KEY')
         self.user_service = UserService(self.base_url, self.api_key)
         self.assistant_service = AssistantService(self.base_url, self.api_key)

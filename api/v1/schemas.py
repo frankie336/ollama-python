@@ -8,6 +8,7 @@ class UserBase(BaseModel):
 
     class Config:
         orm_mode = True
+        from_attributes = True
 
 
 class UserCreate(BaseModel):
@@ -36,6 +37,7 @@ class ThreadRead(BaseModel):
 
     class Config:
         orm_mode = True
+        from_attributes = True
 
 
 class ThreadParticipant(UserBase):
@@ -47,6 +49,7 @@ class ThreadReadDetailed(ThreadRead):
 
     class Config:
         orm_mode = True
+        from_attributes = True
 
 
 class Content(BaseModel):
@@ -81,6 +84,7 @@ class MessageRead(BaseModel):
 
     class Config:
         orm_mode = True
+        from_attributes = True
 
 
 class Tool(BaseModel):
@@ -121,6 +125,7 @@ class Run(BaseModel):
 
     class Config:
         orm_mode = True
+        from_attributes = True
 
 
 class AssistantCreate(BaseModel):
@@ -151,3 +156,4 @@ class AssistantRead(BaseModel):
 
     class Config:
         orm_mode = True
+        from_attributes = True

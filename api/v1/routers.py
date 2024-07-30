@@ -29,12 +29,13 @@ class OllamaClient:
     async def forward_to_ollama(self, path: str, payload: Dict[str, Any], stream: bool = False) -> AsyncGenerator[str, None]:
         async with httpx.AsyncClient(base_url=self.base_url) as client:
             try:
+                logging_utility.info(f"Sending request to {self.base_url}{path} with payload: {payload}")
                 response = await client.post(path, json=payload)
                 response.raise_for_status()
                 if stream:
                     buffer = ""
                     async for line in response.aiter_lines():
-                        print(f"Streaming response line: {line}")
+                        logging_utility.info(f"Streaming response line: {line}")
                         buffer += line
                         try:
                             while buffer:
@@ -45,12 +46,13 @@ class OllamaClient:
                             continue
                 else:
                     result = response.json()
+                    logging_utility.info(f"Received response: {result}")
                     yield json.dumps(result)
             except httpx.HTTPStatusError as e:
-                print(f"HTTPStatusError in forward_to_ollama: {str(e)}")
+                logging_utility.error(f"HTTPStatusError in forward_to_ollama: {str(e)}")
                 raise
             except Exception as e:
-                print(f"Exception in forward_to_ollama: {str(e)}")
+                logging_utility.error(f"Exception in forward_to_ollama: {str(e)}")
                 raise
 
 ollama_client = OllamaClient(base_url="http://localhost:11434")
@@ -107,8 +109,9 @@ async def chat_endpoint(payload: Dict[str, Any], db: Session = Depends(get_db)):
             if result:
                 complete_message = ""
                 for response in result:
-                    if 'message' in response and response['message']['role'] == 'assistant':
-                        assistant_content = response['message']['content']
+                    response_dict = json.loads(response)
+                    if 'message' in response_dict and response_dict['message']['role'] == 'assistant':
+                        assistant_content = response_dict['message']['content']
                         complete_message += assistant_content
                         logging_utility.info("Appending assistant message for thread ID: %s", thread_id)
                 # Save the complete message

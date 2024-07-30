@@ -9,7 +9,8 @@ class RunService:
         self.api_key = api_key
         self.client = httpx.Client(base_url=base_url, headers={"Authorization": f"Bearer {api_key}"})
 
-    def create_run(self, assistant_id: str, thread_id: str, instructions: str, meta_data: Optional[Dict[str, Any]] = {}) -> Dict[str, Any]:
+    def create_run(self, assistant_id: str, thread_id: str, instructions: Optional[str] = "",
+                   meta_data: Optional[Dict[str, Any]] = {}) -> Dict[str, Any]:
         run_data = {
             "id": f"run_{assistant_id}_{thread_id}",  # Ensure this id is unique if required by your API
             "assistant_id": assistant_id,

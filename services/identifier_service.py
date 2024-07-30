@@ -1,6 +1,7 @@
 import random
 import string
 
+
 class IdentifierService:
     @staticmethod
     def generate_id(prefix: str, length: int = 22) -> str:
@@ -43,6 +44,12 @@ class IdentifierService:
     def generate_assistant_id() -> str:
         """Generate an assistant ID in the specified format."""
         return IdentifierService.generate_id("asst")
+
+    @staticmethod
+    def generate_run_id() -> str:
+        """Generate an assistant ID in the specified format."""
+        return IdentifierService.generate_id("asst")
+
 
 # Example usage:
 if __name__ == "__main__":
