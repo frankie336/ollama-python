@@ -1,24 +1,31 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
+
 
 class UserBase(BaseModel):
     id: str
     name: str
 
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        orm_mode = True
+
 
 class UserCreate(BaseModel):
     name: Optional[str] = "Anonymous User"
 
+
 class UserRead(UserBase):
     pass
+
 
 class UserUpdate(BaseModel):
     name: Optional[str] = None
 
+
 class ThreadCreate(BaseModel):
-    participant_ids: List[str]
-    meta_data: Optional[Dict[str, Any]] = {}  # updated field name
+    participant_ids: Optional[List[str]] = None
+    meta_data: Optional[Dict[str, Any]] = {}
+
 
 class ThreadRead(BaseModel):
     id: str
@@ -27,19 +34,25 @@ class ThreadRead(BaseModel):
     object: str
     tool_resources: Dict[str, Any]
 
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        orm_mode = True
+
 
 class ThreadParticipant(UserBase):
     pass
 
+
 class ThreadReadDetailed(ThreadRead):
     participants: List[UserBase]  # This is only for detailed views if needed
 
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        orm_mode = True
+
 
 class Content(BaseModel):
     text: Dict[str, Any]
     type: str
+
 
 class MessageCreate(BaseModel):
     content: List[Content]
@@ -47,6 +60,7 @@ class MessageCreate(BaseModel):
     sender_id: str
     meta_data: Optional[Dict[str, Any]] = {}  # updated field name
     role: str = "user"  # Force the role to be 'user'
+
 
 class MessageRead(BaseModel):
     id: str
@@ -65,12 +79,15 @@ class MessageRead(BaseModel):
     thread_id: str
     sender_id: str  # Added sender_id field
 
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        orm_mode = True
+
 
 class Tool(BaseModel):
     type: str
     function: Optional[Dict[str, Any]] = None
     file_search: Optional[Any] = None
+
 
 class Run(BaseModel):
     id: str
@@ -102,10 +119,12 @@ class Run(BaseModel):
     top_p: float
     tool_resources: Dict[str, Any]
 
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        orm_mode = True
+
 
 class AssistantCreate(BaseModel):
-    name: str
+    name: Optional[str] = None
     description: Optional[str] = None
     model: str
     instructions: Optional[str] = None
@@ -130,4 +149,5 @@ class AssistantRead(BaseModel):
     temperature: float
     response_format: str
 
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        orm_mode = True

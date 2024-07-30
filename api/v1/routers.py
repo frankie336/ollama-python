@@ -21,6 +21,7 @@ logging_utility = LoggingUtility()
 
 router = APIRouter()
 
+
 class OllamaClient:
     def __init__(self, base_url: str):
         self.base_url = base_url

@@ -1,3 +1,5 @@
+from dotenv import load_dotenv
+import os
 from fastapi import FastAPI
 from sqlalchemy import create_engine, text, inspect
 from models.models import Base
@@ -8,9 +10,10 @@ from services.loggin_service import LoggingUtility
 logging_utility = LoggingUtility()
 
 # Update this with your actual database URL
-DATABASE_URL = "mysql+pymysql://ollama:3e4Qv5uo2Cg31zC1@127.0.0.1:3307/cosmic_catalyst"
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 engine = create_engine(DATABASE_URL)
+
 
 def drop_constraints():
     logging_utility.info("Dropping constraints")
@@ -23,13 +26,16 @@ def drop_constraints():
                 logging_utility.info("Dropping foreign key %s from table %s", fk_name, table_name)
                 connection.execute(text(f"ALTER TABLE {table_name} DROP FOREIGN KEY {fk_name}"))
 
+
 def drop_tables():
     logging_utility.info("Dropping all tables")
     Base.metadata.drop_all(bind=engine)
 
+
 def create_tables():
     logging_utility.info("Creating all tables")
     Base.metadata.create_all(bind=engine)
+
 
 def create_app(init_db=True):
     logging_utility.info("Creating FastAPI app")
@@ -51,6 +57,7 @@ def create_app(init_db=True):
     return app
 
 app = create_app()
+
 
 def create_test_app():
     logging_utility.info("Creating test app")

@@ -1,20 +1,24 @@
+from dotenv import load_dotenv
+import os
 from new_clients.user_client import UserService
 from new_clients.assistant_client import AssistantService
 from new_clients.thread_client import ThreadService
 from new_clients.message_client import MessageService
 from new_clients.run_client import RunService
 
+# Load environment variables from .env file
+load_dotenv()
+
 
 class OllamaClient:
-    def __init__(self, base_url='http://localhost:8000/', api_key='your_api_key'):
-
-        self.base_url = base_url
-        self.api_key = api_key
-        self.user_service = UserService(base_url, api_key)
-        self.assistant_service = AssistantService(base_url, api_key)
-        self.thead_service = ThreadService(base_url, api_key)
-        self.message_service = MessageService(base_url, api_key)
-        self.run_service = RunService(base_url, api_key)
+    def __init__(self, base_url=None, api_key=None):
+        self.base_url = base_url or os.getenv('BASE_URL')
+        self.api_key = api_key or os.getenv('API_KEY')
+        self.user_service = UserService(self.base_url, self.api_key)
+        self.assistant_service = AssistantService(self.base_url, self.api_key)
+        self.thead_service = ThreadService(self.base_url, self.api_key)
+        self.message_service = MessageService(self.base_url, self.api_key)
+        self.run_service = RunService(self.base_url, self.api_key)
 
     def user_service(self):
         return self.user_service
@@ -33,11 +37,8 @@ class OllamaClient:
         message = self.message_service.create_message(thread_id=thread_id, content=data, role=role, sender_id=sender_id)
         return message
 
-
 if __name__ == "__main__":
-    base_url = "http://localhost:8000/"
-    api_key = "your_api_key"
-    client = OllamaClient(base_url, api_key)
+    client = OllamaClient()
 
     # Create a user
     user1 = client.user_service.create_user(name='Test')

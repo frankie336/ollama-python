@@ -1,8 +1,8 @@
-version: '3.1'
+version: '3.8'
 
 services:
   db:
-    build: .
+    image: mysql:8.0
     container_name: my_mysql_cosmic_catalyst
     restart: always
     environment:
@@ -11,9 +11,9 @@ services:
       MYSQL_USER: ollama
       MYSQL_PASSWORD: 3e4Qv5uo2Cg31zC1
     ports:
-      - "127.0.0.1:3307:3306"
+      - "3307:3306"
     volumes:
-      - ${HOME}/.ollama/mysql_data:/var/lib/mysql  # Project-specific directory in the user's home directory
+      - mysql_data:/var/lib/mysql
     networks:
       - ollama_network
 
@@ -24,9 +24,9 @@ services:
     container_name: fastapi_cosmic_catalyst
     restart: always
     environment:
-      - DATABASE_URL=mysql://ollama:3e4Qv5uo2Cg31zC1@db:3306/cosmic_catalyst
+      - DATABASE_URL=mysql+pymysql://ollama:3e4Qv5uo2Cg31zC1@db:3306/cosmic_catalyst
     ports:
-      - "8000:8000"
+      - "9000:9000"
     depends_on:
       - db
     networks:
@@ -35,3 +35,11 @@ services:
 networks:
   ollama_network:
     driver: bridge
+
+volumes:
+  mysql_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${HOME}/.ollama/mysql_data
