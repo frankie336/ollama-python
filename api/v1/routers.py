@@ -23,7 +23,7 @@ router = APIRouter()
 
 
 class OllamaClient:
-    def __init__(self, base_url: str):
+    def __init__(self, base_url: str = "http://172.21.0.2:11434"):
         self.base_url = base_url
 
     async def forward_to_ollama(self, path: str, payload: Dict[str, Any], stream: bool = False) -> AsyncGenerator[str, None]:
@@ -55,7 +55,8 @@ class OllamaClient:
                 logging_utility.error(f"Exception in forward_to_ollama: {str(e)}")
                 raise
 
-ollama_client = OllamaClient(base_url="http://localhost:11434")
+base_url = "http://172.21.0.2:11434"
+ollama_client = OllamaClient(base_url=base_url)
 
 @router.post("/api/generate")
 async def generate_endpoint(payload: Dict[str, Any]):
