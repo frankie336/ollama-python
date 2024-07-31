@@ -107,16 +107,14 @@ class StreamingAssistantsClient:
 
 
 def process_stream(response_generator):
-    complete_message = ""
     for chunk in response_generator:
         if chunk.startswith("data: "):
             try:
                 data = json.loads(chunk[6:])  # Remove "data: " prefix
                 content = data.get('content', '')
-                complete_message += content
 
-                # Yield complete chunks of text
-                yield content
+                if content:
+                    yield content
 
                 if data.get('done', False):
                     break
@@ -126,8 +124,6 @@ def process_stream(response_generator):
             continue  # Skip empty lines
         else:
             print(f"Unexpected chunk format: {chunk}")
-
-    return complete_message
 
 
 def setup_assistant(client, assistant_name, model):
