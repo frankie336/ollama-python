@@ -6,7 +6,7 @@ from new_clients.run_client import RunService
 
 
 class OllamaClient:
-    def __init__(self, base_url='http://localhost:9000/', api_key='your_api_key'):
+    def __init__(self, base_url='http://localhost:8000/', api_key='your_api_key'):
 
         self.base_url = base_url
         self.api_key = api_key
