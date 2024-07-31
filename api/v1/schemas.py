@@ -57,8 +57,11 @@ class Content(BaseModel):
     type: str
 
 
+from pydantic import BaseModel
+from typing import List, Dict, Any, Optional
+
 class MessageCreate(BaseModel):
-    content: List[Content]
+    content: List[str]
     thread_id: str
     sender_id: Optional[str] = None
     meta_data: Optional[Dict[str, Any]] = {}
@@ -67,14 +70,13 @@ class MessageCreate(BaseModel):
     class Config:
         schema_extra = {
             "example": {
-                "content": [{"text": "Hello, this is a test message.", "type": "text"}],
+                "content": ["Hello, this is a test message."],
                 "thread_id": "example_thread_id",
                 "sender_id": "example_sender_id",
                 "meta_data": {"key": "value"},
                 "role": "user"
             }
         }
-
 
 class MessageRead(BaseModel):
     id: str
