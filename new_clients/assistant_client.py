@@ -8,7 +8,7 @@ class AssistantService:
         self.api_key = api_key
         self.client = httpx.Client(base_url=base_url, headers={"Authorization": f"Bearer {api_key}"})
 
-    def create_assistant(self, name: str, description: str, model: str, instructions: str,
+    def create_assistant(self,model: str, name: str = "", description: str = "",  instructions: str = "",
                          tools: List[Dict[str, Any]] = None) -> Dict[str, Any]:
         if tools is None:
             tools = []
@@ -27,7 +27,6 @@ class AssistantService:
         response = self.client.post("/v1/assistants", json=assistant_data)
         response.raise_for_status()
         return response.json()
-
     def retrieve_assistant(self, assistant_id: str) -> Dict[str, Any]:
         response = self.client.get(f"/v1/assistants/{assistant_id}")
         response.raise_for_status()
