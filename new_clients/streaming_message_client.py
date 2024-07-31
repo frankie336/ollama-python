@@ -15,11 +15,10 @@ class StreamingAssistantsClient:
     def __init__(self, base_url: str, api_key: str):
         self.base_url = base_url
         self.api_key = api_key
-        self.client = httpx.Client(base_url=base_url, timeout=30.0)
+        self.client = httpx.Client(base_url=base_url, headers={"Authorization": f"Bearer {api_key}"})
 
     def create_assistant(self, name, description, model, instructions, tools):
         try:
-            logging_utility.info(f"Sending request to {self.base_url}/assistants")
             response = self.client.post("/assistants", json={
                 "name": name,
                 "description": description,
@@ -27,8 +26,6 @@ class StreamingAssistantsClient:
                 "instructions": instructions,
                 "tools": tools
             })
-            logging_utility.info(f"Response status: {response.status_code}")
-            logging_utility.info(f"Response content: {response.text}")
             response.raise_for_status()
             return response.json()
         except httpx.HTTPStatusError as e:
@@ -47,6 +44,35 @@ class StreamingAssistantsClient:
             logging_utility.error(f"Error creating user: {e}")
             raise
 
+    def create_thread(self, participant_ids, meta_data):
+        try:
+            response = self.client.post("/threads", json={
+                "participant_ids": participant_ids,
+                "meta_data": meta_data
+            })
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            logging_utility.error(f"Error creating thread: {e}")
+            raise
+
+    def create_message(self, thread_id, content, role, sender_id, meta_data=None):
+        if meta_data is None:
+            meta_data = {}
+        try:
+            response = self.client.post("/messages", json={
+                "thread_id": thread_id,
+                "content": content,
+                "role": role,
+                "sender_id": sender_id,
+                "meta_data": meta_data
+            })
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            logging_utility.error(f"Error creating message: {e}")
+            raise
+
     def list_messages(self, thread_id):
         try:
             response = self.client.get(f"/threads/{thread_id}/messages")
@@ -54,6 +80,19 @@ class StreamingAssistantsClient:
             return response.json()
         except Exception as e:
             logging_utility.error(f"Error listing messages: {e}")
+            raise
+
+    def create_run(self, assistant_id, thread_id, instructions):
+        try:
+            response = self.client.post("/runs", json={
+                "assistant_id": assistant_id,
+                "thread_id": thread_id,
+                "instructions": instructions
+            })
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            logging_utility.error(f"Error creating run: {e}")
             raise
 
     def chat(self, payload):
@@ -65,7 +104,6 @@ class StreamingAssistantsClient:
         except Exception as e:
             logging_utility.error(f"Error in chat: {e}")
             raise
-
 
 def process_stream(response_generator):
     complete_message = ""
