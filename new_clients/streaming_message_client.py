@@ -105,21 +105,20 @@ class StreamingAssistantsClient:
             logging_utility.error(f"Error in chat: {e}")
             raise
 
+
 def process_stream(response_generator):
     complete_message = ""
     for chunk in response_generator:
-        print(f"Raw chunk received: {chunk}")
         if chunk.startswith("data: "):
             try:
                 data = json.loads(chunk[6:])  # Remove "data: " prefix
                 content = data.get('content', '')
                 complete_message += content
-                print(f"Received content: {content}")
-                print(f"Current message: {complete_message}")
-                print("-" * 50)  # Separator for readability
+
+                # Yield complete chunks of text
+                yield content
 
                 if data.get('done', False):
-                    print("\nStream completed.")
                     break
             except json.JSONDecodeError:
                 print(f"Failed to parse JSON: {chunk}")
