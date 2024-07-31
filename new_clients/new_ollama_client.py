@@ -23,6 +23,19 @@ class OllamaClient:
     def user_service(self):
         return self.user_service
 
+    def assistant_service(self):
+        return self.assistant_service
+
+    def thead_service(self):
+        return self.thead_service
+
+    def message_service(self):
+        return self.message_service
+
+    def run_service(self):
+        return self.run_service
+
+
     def create_message(self, thread_id, content, role, sender_id):
         data = [
             {
@@ -36,6 +49,7 @@ class OllamaClient:
 
         message = self.message_service.create_message(thread_id=thread_id, content=data, role=role, sender_id=sender_id)
         return message
+
 
 if __name__ == "__main__":
     client = OllamaClient()
