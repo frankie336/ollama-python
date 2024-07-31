@@ -7,7 +7,14 @@ class MessageService:
         self.api_key = api_key
         self.client = httpx.Client(base_url=base_url, headers={"Authorization": f"Bearer {api_key}"})
 
-    def create_message(self, thread_id: str, content: List[Dict[str, Any]], role: str, sender_id: str, meta_data: Optional[Dict[str, Any]] = {}) -> Dict[str, Any]:
+    def create_message(self, thread_id: str, content: List[Dict[str, Any]], role: str, sender_id: Optional[str] = None,
+                       meta_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        # Set default values if None
+        if sender_id is None:
+            sender_id = ""
+        if meta_data is None:
+            meta_data = {}
+
         message_data = {
             "thread_id": thread_id,
             "content": content,

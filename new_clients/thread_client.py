@@ -1,5 +1,5 @@
 import httpx
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 
 class ThreadService:
@@ -14,7 +14,14 @@ class ThreadService:
         response.raise_for_status()
         return response.json()
 
-    def create_thread(self, participant_ids: List[str], meta_data: Dict[str, Any] = {}) -> Dict[str, Any]:
+    def create_thread(self, participant_ids: Optional[List[str]] = None, meta_data: Optional[Dict[str, Any]] = None) -> \
+    Dict[str, Any]:
+        # Set default values if None
+        if participant_ids is None:
+            participant_ids = []
+        if meta_data is None:
+            meta_data = {}
+
         thread_data = {
             "participant_ids": participant_ids,
             "meta_data": meta_data
