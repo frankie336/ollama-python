@@ -34,7 +34,7 @@ thread_id = thread['id']
 message_content = "Hello, can you help me with a math problem?"
 message = client.create_message(thread_id=thread_id, content=message_content, sender_id=userid, role='user')
 print(message)
-
+time.sleep(10000)
 # Create Run
 # At this stage the prompt s in state and ready to be sent to the assistant for processing.
 
