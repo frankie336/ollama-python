@@ -76,6 +76,7 @@ class UserService:
             logging_utility.error("An error occurred while deleting user: %s", str(e))
             raise
 
+
 if __name__ == "__main__":
     # Replace with your actual base URL and API key
     base_url = "http://localhost:8000"

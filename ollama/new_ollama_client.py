@@ -90,9 +90,15 @@ class OllamaClient:
 
         logging_utility.info("Exiting streamed_response_helper")
 
-    def process_conversation(self, thread_id, run_id, system_message=None, model='llama3.1'):
-        logging_utility.info("Processing conversation for thread_id: %s, run_id: %s, model: %s", thread_id, run_id, model)
-        messages = self.message_service.get_formatted_messages(thread_id, system_message=system_message)
+    def process_conversation(self, thread_id, run_id, assistant_id, model='llama3.1'):
+        logging_utility.info("Processing conversation for thread_id: %s, run_id: %s, model: %s", thread_id, run_id,
+                             model)
+
+        assistant = self.assistant_service.retrieve_assistant(assistant_id=assistant_id)
+        logging_utility.info("Retrieved assistant: id=%s, name=%s, model=%s",
+                             assistant.get('id'), assistant.get('name'), assistant.get('model'))
+
+        messages = self.message_service.get_formatted_messages(thread_id, system_message=assistant['instructions'])
         logging_utility.debug("Formatted messages: %s", messages)
         return self.streamed_response_helper(messages, thread_id, run_id, model)
 
@@ -135,7 +141,7 @@ if __name__ == "__main__":
     logging_utility.info("Created run with ID: %s", run_id)
 
     logging_utility.info("Processing conversation")
-    for chunk in client.process_conversation(thread_id=thread_id, run_id=run_id, system_message=assistant['instructions']):
+    for chunk in client.process_conversation(thread_id=thread_id, run_id=run_id, assistant_id=assistant_id):
         logging_utility.debug("Received chunk: %s", chunk)
 
     logging_utility.info("Conversation processed successfully")
