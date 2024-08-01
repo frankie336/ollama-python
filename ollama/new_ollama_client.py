@@ -69,46 +69,14 @@ class OllamaClient:
 
         print("DEBUG: Exiting send_new_message")
 
-    def process_conversation(self, thread_id, user_message, user_id, model='llama3.1'):
-        # Create user message
-        self.create_message(thread_id, user_message, 'user', user_id)
+    def process_conversation(self, thread_id, model='llama3.1'):
+
 
         # Get formatted messages
         messages = self.message_service.get_formatted_messages(thread_id)
 
         # Generate and stream response
         return self.streamed_response_helper(messages, thread_id, model)
-
-    def start_new_conversation(self, user_message, user_id, selected_model, personality):
-        # Create a user
-        user1 = self.user_service.create_user(name='Test')
-        userid = user1['id']
-
-        # Create an assistant
-        assistant = self.assistant_service.create_assistant(
-            name='Mathy',
-            description='My helpful maths tutor',
-            model=selected_model,
-            instructions='Be as kind, intelligent, and helpful',
-        )
-        assistant_id = assistant['id']
-
-        # Create thread
-        thread = self.thread_service.create_thread()
-        thread_id = thread['id']
-
-        def generate():
-            # First, yield the thread_id
-            yield f"data: {json.dumps({'thread_id': thread_id})}\n\n"
-
-            try:
-                for chunk in self.process_conversation(thread_id, user_message, userid, model=selected_model):
-                    yield f"data: {json.dumps({'chunk': chunk})}\n\n"
-            except Exception as e:
-                yield f"data: {json.dumps({'error': str(e)})}\n\n"
-            yield "data: [DONE]\n\n"
-
-        return generate()
 
 
 if __name__ == "__main__":
@@ -131,9 +99,15 @@ if __name__ == "__main__":
     thread = client.thread_service.create_thread(participant_ids=[userid], meta_data={"topic": "Test Thread"})
     thread_id = thread['id']
 
-    # Process a conversation
-    user_message = "Hello, can you help me with a math problem?"
-    for chunk in client.process_conversation(thread_id, user_message, userid):
+    # Create message
+
+    message = client.create_message(thread_id=thread_id,
+
+                                    content="This is a test message",
+                                    role='user',
+                                    sender_id=userid)
+
+    for chunk in client.process_conversation(thread_id):
         # In a real application, you might want to do something with each chunk,
         # like sending it to a frontend. Here we're just printing it.
         print(chunk, end='', flush=True)
