@@ -23,6 +23,9 @@ class OllamaClient:
         self.run_service = RunService(self.base_url, self.api_key)
         self.ollama_client = Client()
 
+    def create_thread(self):
+        return self.thread_service.create_thread(participant_ids=None, meta_data=None)
+
     def create_message(self, thread_id, content, role, sender_id):
         message = self.message_service.create_message(thread_id=thread_id, content=content, role=role,
                                                       sender_id=sender_id)
