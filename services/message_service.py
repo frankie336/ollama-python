@@ -34,7 +34,7 @@ class MessageService:
             assistant_id=None,
             attachments=[],
             completed_at=None,
-            content=message.content,  # Now it's a simple string
+            content=message.content,
             created_at=int(time.time()),
             incomplete_at=None,
             incomplete_details=None,
@@ -125,7 +125,7 @@ class MessageService:
             for db_message in db_messages
         ]
 
-    def save_assistant_message(self, thread_id: str, content: str, is_last_chunk: bool = False) -> Optional[MessageRead]:
+    def save_assistant_message_chunk(self, thread_id: str, content: str, is_last_chunk: bool = False) -> Optional[MessageRead]:
         if thread_id not in self.message_chunks:
             self.message_chunks[thread_id] = []
 
@@ -149,7 +149,7 @@ class MessageService:
             assistant_id=assistant_id,
             attachments=[],
             completed_at=int(time.time()),
-            content=complete_message,  # Now it's a simple string
+            content=complete_message,
             created_at=int(time.time()),
             incomplete_at=None,
             incomplete_details=None,

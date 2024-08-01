@@ -162,26 +162,10 @@ def setup_message(client, thread_id, user_id, initial_message, role):
 
 def retrieve_messages(client, thread_id, system_message="This is a system message"):
     # Retrieve all messages in the thread
+
     thread_messages = client.list_messages(thread_id=thread_id)
-    print(f"Retrieved all messages in the thread: {json.dumps(thread_messages, indent=2)}")  # Print the entire response for debugging
 
-    serialized_messages = []
-    for message in thread_messages:
-        role = message["role"]  # Use the role field directly from the message
-
-        for content in message["content"]:
-            serialized_message = {
-                "role": role,
-                "content": content["text"]["value"]
-            }
-            serialized_messages.append(serialized_message)
-
-    # Insert the system message at the top of the serialized_messages list
-    if system_message:
-        serialized_messages.insert(0, {"role": "system", "content": system_message})
-
-    print(f"Serialized messages with system message: {json.dumps(serialized_messages, indent=2)}")  # Print serialized messages for debugging
-    return serialized_messages
+    return thread_messages
 
 def run(assistant_id=None, assistant_name=None, user_name=None, initial_message=None, model=None, thread_id=None, role=None):
     client = StreamingAssistantsClient(base_url=base_url, api_key=api_key)

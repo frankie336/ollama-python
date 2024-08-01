@@ -26,37 +26,10 @@ class OllamaClient:
     def __init__(self, base_url: str = "http://172.21.0.2:11434"):
         self.base_url = base_url
 
-    async def forward_to_ollama(self, path: str, payload: Dict[str, Any], stream: bool = False) -> AsyncGenerator[str, None]:
-        async with httpx.AsyncClient(base_url=self.base_url) as client:
-            try:
-                logging_utility.info(f"Sending request to {self.base_url}{path} with payload: {payload}")
-                response = await client.post(path, json=payload)
-                response.raise_for_status()
-                if stream:
-                    buffer = ""
-                    async for line in response.aiter_lines():
-                        logging_utility.info(f"Streaming response line: {line}")
-                        buffer += line
-                        try:
-                            while buffer:
-                                json_obj, index = json.JSONDecoder().raw_decode(buffer)
-                                buffer = buffer[index:].lstrip()
-                                yield json.dumps(json_obj)
-                        except json.JSONDecodeError:
-                            continue
-                else:
-                    result = response.json()
-                    logging_utility.info(f"Received response: {result}")
-                    yield json.dumps(result)
-            except httpx.HTTPStatusError as e:
-                logging_utility.error(f"HTTPStatusError in forward_to_ollama: {str(e)}")
-                raise
-            except Exception as e:
-                logging_utility.error(f"Exception in forward_to_ollama: {str(e)}")
-                raise
 
 base_url = "http://172.21.0.2:11434"
 ollama_client = OllamaClient(base_url=base_url)
+
 
 @router.post("/api/generate")
 async def generate_endpoint(payload: Dict[str, Any]):
@@ -68,59 +41,6 @@ async def generate_endpoint(payload: Dict[str, Any]):
         logging_utility.error("Error in generate_endpoint: %s", str(e))
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
-
-@router.post("/chat")
-async def chat_endpoint(payload: Dict[str, Any], db: Session = Depends(get_db)):
-    logging_utility.info("Received request at /chat with payload: %s", json.dumps(payload, indent=2))
-    message_service = MessageService(db)
-
-    try:
-        thread_id = payload.get('thread_id')
-        if not thread_id:
-            logging_utility.error("Missing 'thread_id' in payload: %s", payload)
-            raise HTTPException(status_code=400, detail="Missing 'thread_id' in payload")
-
-        if payload.get("stream", False):
-            async def stream_response():
-                complete_message = ""
-                async for line in ollama_client.forward_to_ollama("/api/chat", payload, stream=True):
-                    try:
-                        json_obj = json.loads(line)
-                        if 'message' in json_obj and json_obj['message']['role'] == 'assistant':
-                            assistant_content = json_obj['message']['content']
-                            complete_message += assistant_content
-
-                            yield f"data: {json.dumps({'content': assistant_content})}\n\n"
-
-                            logging_utility.info("Streaming response chunk: %s", assistant_content)
-
-                            message_service.save_assistant_message(thread_id, assistant_content)
-                    except json.JSONDecodeError:
-                        logging_utility.error("Failed to decode line: %s", line)
-                        continue
-
-                # Save the complete message after all chunks are received
-                message_service.save_assistant_message(thread_id, complete_message, is_last_chunk=True)
-
-                yield f"data: {json.dumps({'content': complete_message, 'done': True})}\n\n"
-
-            return StreamingResponse(stream_response(), media_type="text/event-stream")
-        else:
-            result = [item async for item in ollama_client.forward_to_ollama("/api/chat", payload)]
-            if result:
-                complete_message = ""
-                for response in result:
-                    response_dict = json.loads(response)
-                    if 'message' in response_dict and response_dict['message']['role'] == 'assistant':
-                        assistant_content = response_dict['message']['content']
-                        complete_message += assistant_content
-                        logging_utility.info("Appending assistant message for thread ID: %s", thread_id)
-                # Save the complete message
-                message_service.save_assistant_message(thread_id, complete_message, is_last_chunk=True)
-            return JSONResponse(content=json.loads(result[0]) if result else {})
-    except Exception as e:
-        logging_utility.error("Error in chat_endpoint: %s", str(e))
-        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
 
 @router.post("/users", response_model=UserRead)
@@ -212,3 +132,13 @@ def get_formatted_messages(thread_id: str, db: Session = Depends(get_db)):
         raise e
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+
+
+@router.post("/messages/assistant", response_model=MessageRead)
+def save_assistant_message(message: MessageCreate, db: Session = Depends(get_db)):
+    message_service = MessageService(db)
+    return message_service.save_assistant_message_chunk(
+        thread_id=message.thread_id,
+        content=message.content,
+        is_last_chunk=True  # Assuming we're always sending the complete message
+    )
