@@ -1,10 +1,12 @@
 from dotenv import load_dotenv
 import os
+import json
 from new_clients.user_client import UserService
 from new_clients.assistant_client import AssistantService
 from new_clients.thread_client import ThreadService
 from new_clients.message_client import MessageService
 from new_clients.run_client import RunService
+from ollama import Client
 
 # Load environment variables from .env file
 load_dotenv()
@@ -16,31 +18,60 @@ class OllamaClient:
         self.api_key = api_key or os.getenv('API_KEY')
         self.user_service = UserService(self.base_url, self.api_key)
         self.assistant_service = AssistantService(self.base_url, self.api_key)
-        self.thead_service = ThreadService(self.base_url, self.api_key)
+        self.thread_service = ThreadService(self.base_url, self.api_key)
         self.message_service = MessageService(self.base_url, self.api_key)
         self.run_service = RunService(self.base_url, self.api_key)
-
-    def user_service(self):
-        return self.user_service
-
-    def assistant_service(self):
-        return self.assistant_service
-
-    def thead_service(self):
-        return self.thead_service
-
-    def message_service(self):
-        return self.message_service
-
-    def run_service(self):
-        return self.run_service
-
+        self.ollama_client = Client()
 
     def create_message(self, thread_id, content, role, sender_id):
-
-
-        message = self.message_service.create_message(thread_id=thread_id, content=content, role=role, sender_id=sender_id)
+        message = self.message_service.create_message(thread_id=thread_id, content=content, role=role,
+                                                      sender_id=sender_id)
         return message
+
+    def streamed_response_helper(self, messages, thread_id, model='llama3.1'):
+        try:
+            response = self.ollama_client.chat(
+                model=model,
+                messages=messages,
+                stream=True
+            )
+
+            print("DEBUG: Response received from Ollama client")
+            full_response = ""
+            for chunk in response:
+                content = chunk['message']['content']
+                full_response += content
+                print(f" {content}", end='', flush=True)
+                yield content
+
+            print("\nDEBUG: Finished yielding all chunks")
+            print(f"\nFull response: {full_response}")
+
+            # Save the complete assistant message
+            saved_message = self.message_service.save_assistant_message_chunk(thread_id, full_response,
+                                                                              is_last_chunk=True)
+
+            if saved_message:
+                print("Assistant message saved successfully.")
+            else:
+                print("Failed to save assistant message.")
+
+        except Exception as e:
+            error_message = f"Error in send_new_message: {str(e)}"
+            print(f"DEBUG: {error_message}")
+            yield json.dumps({"error": "An error occurred while generating the response"})
+
+        print("DEBUG: Exiting send_new_message")
+
+    def process_conversation(self, thread_id, user_message, user_id, model='llama3.1'):
+        # Create user message
+        self.create_message(thread_id, user_message, 'user', user_id)
+
+        # Get formatted messages
+        messages = self.message_service.get_formatted_messages(thread_id)
+
+        # Generate and stream response
+        return self.streamed_response_helper(messages, thread_id, model)
 
 
 if __name__ == "__main__":
@@ -60,9 +91,14 @@ if __name__ == "__main__":
     )
 
     # Create thread
-    thread = client.thead_service.create_thread(participant_ids=[userid], meta_data={"topic": "Test Thread"})
+    thread = client.thread_service.create_thread(participant_ids=[userid], meta_data={"topic": "Test Thread"})
     thread_id = thread['id']
 
-    # Create a message
-    message_content = "Hello, can you help me with a math problem?"
-    message = client.create_message(thread_id=thread_id, content=message_content, sender_id=userid, role='user')
+    # Process a conversation
+    user_message = "Hello, can you help me with a math problem?"
+    for chunk in client.process_conversation(thread_id, user_message, userid):
+        # In a real application, you might want to do something with each chunk,
+        # like sending it to a frontend. Here we're just printing it.
+        pass
+
+    print("Conversation processed successfully.")
