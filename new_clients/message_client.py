@@ -22,7 +22,7 @@ class MessageService:
             "sender_id": sender_id,
             "meta_data": meta_data
         }
-        print(f"Sending message data: {json.dumps(message_data, indent=2)}")
+
         response = self.client.post("/v1/messages", json=message_data)
         response.raise_for_status()
         return response.json()
