@@ -37,13 +37,13 @@ class MessageService:
             created_at=int(time.time()),
             incomplete_at=None,
             incomplete_details=None,
-            meta_data=json.dumps(message.meta_data),  # Convert dict to JSON string
+            meta_data=json.dumps(message.meta_data),
             object="message",
             role=message.role,
             run_id=None,
             status=None,
             thread_id=message.thread_id,
-            sender_id=message.sender_id  # Ensure sender_id is set
+            sender_id=message.sender_id
         )
 
         self.db.add(db_message)
@@ -59,13 +59,13 @@ class MessageService:
             created_at=db_message.created_at,
             incomplete_at=db_message.incomplete_at,
             incomplete_details=db_message.incomplete_details,
-            meta_data=json.loads(db_message.meta_data),  # Convert JSON string back to dict
+            meta_data=json.loads(db_message.meta_data),
             object=db_message.object,
             role=db_message.role,
             run_id=db_message.run_id,
             status=db_message.status,
             thread_id=db_message.thread_id,
-            sender_id=db_message.sender_id  # Ensure sender_id is returned
+            sender_id=db_message.sender_id
         )
 
     def retrieve_message(self, message_id: str) -> MessageRead:
@@ -82,13 +82,13 @@ class MessageService:
             created_at=db_message.created_at,
             incomplete_at=db_message.incomplete_at,
             incomplete_details=db_message.incomplete_details,
-            meta_data=json.loads(db_message.meta_data),  # Convert JSON string back to dict
+            meta_data=json.loads(db_message.meta_data),
             object=db_message.object,
             role=db_message.role,
             run_id=db_message.run_id,
             status=db_message.status,
             thread_id=db_message.thread_id,
-            sender_id=db_message.sender_id  # Ensure sender_id is returned
+            sender_id=db_message.sender_id
         )
 
     def list_messages(self, thread_id: str, limit: int = 20, order: str = "asc") -> List[MessageRead]:
@@ -113,13 +113,13 @@ class MessageService:
                 created_at=db_message.created_at,
                 incomplete_at=db_message.incomplete_at,
                 incomplete_details=db_message.incomplete_details,
-                meta_data=json.loads(db_message.meta_data),  # Convert JSON string back to dict
+                meta_data=json.loads(db_message.meta_data),
                 object=db_message.object,
                 role=db_message.role,
                 run_id=db_message.run_id,
                 status=db_message.status,
                 thread_id=db_message.thread_id,
-                sender_id=db_message.sender_id  # Ensure sender_id is returned
+                sender_id=db_message.sender_id
             )
             for db_message in db_messages
         ]
@@ -152,13 +152,13 @@ class MessageService:
             created_at=int(time.time()),
             incomplete_at=None,
             incomplete_details=None,
-            meta_data=json.dumps({}),  # Add any relevant metadata
+            meta_data=json.dumps({}),
             object="message",
             role="assistant",
             run_id=None,
             status=None,
             thread_id=thread_id,
-            sender_id=sender_id  # Use the assistant sender ID
+            sender_id=sender_id
         )
 
         self.db.add(db_message)
@@ -174,7 +174,7 @@ class MessageService:
             created_at=db_message.created_at,
             incomplete_at=db_message.incomplete_at,
             incomplete_details=db_message.incomplete_details,
-            meta_data=json.loads(db_message.meta_data),  # Convert JSON string back to dict
+            meta_data=json.loads(db_message.meta_data),
             object=db_message.object,
             role=db_message.role,
             run_id=db_message.run_id,

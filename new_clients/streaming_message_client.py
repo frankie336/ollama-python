@@ -107,25 +107,28 @@ class StreamingAssistantsClient:
 
 
 def process_stream(response_generator):
+    print("Starting process_stream")
     for chunk in response_generator:
+        print(f"Received chunk: {chunk}")
         if chunk.startswith("data: "):
             try:
                 data = json.loads(chunk[6:])  # Remove "data: " prefix
+                print(f"Parsed data: {data}")
                 content = data.get('content', '')
-
                 if content:
-                    yield content
-
+                    print(f"Yielding content: {content}")
+                    yield json.dumps({"content": content})
                 if data.get('done', False):
+                    print("Received done signal")
                     break
             except json.JSONDecodeError:
                 print(f"Failed to parse JSON: {chunk}")
         elif chunk.strip() == "":
+            print("Skipping empty line")
             continue  # Skip empty lines
         else:
             print(f"Unexpected chunk format: {chunk}")
-
-
+    print("Finished process_stream")
 def setup_assistant(client, assistant_name, model):
     assistant = client.create_assistant(
         name=assistant_name,
@@ -166,6 +169,8 @@ def retrieve_messages(client, thread_id, system_message="This is a system messag
     print(f"Retrieved all messages in the thread: {json.dumps(thread_messages, indent=2)}")  # Print the entire response for debugging
 
     serialized_messages = []
+    last_role = None
+
     for message in thread_messages:
         role = message["role"]  # Use the role field directly from the message
 
@@ -174,7 +179,11 @@ def retrieve_messages(client, thread_id, system_message="This is a system messag
                 "role": role,
                 "content": content["text"]["value"]
             }
+            # Ensure alternating roles
+            if last_role and last_role == role:
+                continue
             serialized_messages.append(serialized_message)
+            last_role = role
 
     # Insert the system message at the top of the serialized_messages list
     if system_message:
