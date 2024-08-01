@@ -22,11 +22,12 @@ assistant = client.assistant_service.create_assistant(
 assistant_id = assistant['id']
 
 # Create thread
-thread = client.thead_service.create_thread(participant_ids=[userid], meta_data={"topic": "Test Thread"})
-#thread_id = thread['id']
-thread_id = "thread_eILawVFGeYN87KDR0ckf3g"
+#thread = client.thead_service.create_thread(participant_ids=[userid], meta_data={"topic": "Test Thread"})
+thread = client.thread_service.create_thread()
+thread_id = thread['id']
+#thread_id = "thread_eILawVFGeYN87KDR0ckf3g"
 # Create a message
-message_content = "Thank you!"
+message_content = "This is  a test message"
 message = client.create_message(thread_id=thread_id, content=message_content, sender_id=userid, role='user')
 message_id = message['id']
 

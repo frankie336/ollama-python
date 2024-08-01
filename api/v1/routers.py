@@ -31,18 +31,6 @@ base_url = "http://172.21.0.2:11434"
 ollama_client = OllamaClient(base_url=base_url)
 
 
-@router.post("/api/generate")
-async def generate_endpoint(payload: Dict[str, Any]):
-    logging_utility.info("Received request at /api/generate with payload: %s", payload)
-    try:
-        result = await ollama_client.forward_to_ollama("/api/generate", payload)
-        return next(result)
-    except Exception as e:
-        logging_utility.error("Error in generate_endpoint: %s", str(e))
-        raise HTTPException(status_code=500, detail="Internal Server Error")
-
-
-
 @router.post("/users", response_model=UserRead)
 def create_user(user: UserCreate = None, db: Session = Depends(get_db)):
     user_service = UserService(db)
