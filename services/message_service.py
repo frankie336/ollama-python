@@ -182,3 +182,27 @@ class MessageService:
             thread_id=db_message.thread_id,
             sender_id=db_message.sender_id
         )
+
+    def list_messages_for_thread(self, thread_id: str) -> List[Dict[str, Any]]:
+        db_thread = self.db.query(Thread).filter(Thread.id == thread_id).first()
+        if not db_thread:
+            raise HTTPException(status_code=404, detail="Thread not found")
+
+        db_messages = self.db.query(Message).filter(Message.thread_id == thread_id).order_by(
+            Message.created_at.asc()).all()
+
+        formatted_messages = [
+            {
+                "role": "system",
+                "content": "Be as kind, intelligent, and helpful"
+            }
+        ]
+
+        for db_message in db_messages:
+            content = db_message.content[0]['text']['value'] if db_message.content else ""
+            formatted_messages.append({
+                "role": db_message.role,
+                "content": content
+            })
+
+        return formatted_messages

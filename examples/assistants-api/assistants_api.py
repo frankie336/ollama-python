@@ -27,7 +27,8 @@ assistant_id = assistant['id']
 
 # Create thread
 thread = client.thead_service.create_thread(participant_ids=[userid], meta_data={"topic": "Test Thread"})
-thread_id = thread['id']
+#thread_id = thread['id']
+thread_id = "thread_0mcWvF8hOOEIBaM7fJNlEz"
 
 # Create a message
 

@@ -74,4 +74,3 @@ if __name__ == "__main__":
     # Create a message
     message_content = "Hello, can you help me with a math problem?"
     message = client.create_message(thread_id=thread_id, content=message_content, sender_id=userid, role='user')
-    print(message)

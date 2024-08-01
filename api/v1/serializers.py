@@ -35,15 +35,18 @@ class ThreadParticipant(UserBase):
 class ThreadReadDetailed(ThreadRead):
     participants: List[UserBase]  # This is only for detailed views if needed
 
+
 class Content(BaseModel):
     text: Dict[str, Any]
     type: str
+
 
 class MessageCreate(BaseModel):
     content: List[Content]
     role: str
     thread_id: str
     msg_metadata: Optional[Dict[str, Any]] = {}
+
 
 class MessageRead(BaseModel):
     id: str
