@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Boolean, JSON, DateTime, ForeignKey, Table
+from sqlalchemy import Column, String, Integer, Boolean, JSON, DateTime, ForeignKey, Table, Text
 from sqlalchemy.orm import relationship, declarative_base
 import time
 
@@ -10,6 +10,7 @@ thread_participants = Table(
     Column('user_id', String(64), ForeignKey('users.id'), primary_key=True)
 )
 
+
 class User(Base):
     __tablename__ = "users"
 
@@ -17,6 +18,7 @@ class User(Base):
     name = Column(String(128), index=True)
 
     threads = relationship('Thread', secondary=thread_participants, back_populates='participants')
+
 
 class Thread(Base):
     __tablename__ = "threads"
@@ -29,14 +31,14 @@ class Thread(Base):
 
     participants = relationship('User', secondary=thread_participants, back_populates='threads')
 
+
 class Message(Base):
     __tablename__ = "messages"
-
     id = Column(String(64), primary_key=True, index=True)
     assistant_id = Column(String(64), index=True)
     attachments = Column(JSON, default=[])
     completed_at = Column(Integer, nullable=True)
-    content = Column(JSON, nullable=False)
+    content = Column(Text, nullable=False)  # Changed from JSON to Text
     created_at = Column(Integer, nullable=False)
     incomplete_at = Column(Integer, nullable=True)
     incomplete_details = Column(JSON, nullable=True)
@@ -47,6 +49,7 @@ class Message(Base):
     status = Column(String(32), nullable=True)
     thread_id = Column(String(64), nullable=False)
     sender_id = Column(String(64), nullable=False)
+
 
 class Run(Base):
     __tablename__ = "runs"
@@ -79,6 +82,7 @@ class Run(Base):
     temperature = Column(Integer, nullable=True)
     top_p = Column(Integer, nullable=True)
     tool_resources = Column(JSON, nullable=True)
+
 
 class Assistant(Base):
     __tablename__ = "assistants"

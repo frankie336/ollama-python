@@ -1,7 +1,6 @@
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 
-
 class UserBase(BaseModel):
     id: str
     name: str
@@ -10,28 +9,23 @@ class UserBase(BaseModel):
         orm_mode = True
         from_attributes = True
 
-
 class UserCreate(BaseModel):
     name: Optional[str] = "Anonymous User"
-
 
 class UserRead(UserBase):
     pass
 
-
 class UserUpdate(BaseModel):
     name: Optional[str] = None
-
 
 class ThreadCreate(BaseModel):
     participant_ids: Optional[List[str]] = None
     meta_data: Optional[Dict[str, Any]] = {}
 
-
 class ThreadRead(BaseModel):
     id: str
     created_at: int
-    meta_data: Dict[str, Any]  # updated field name
+    meta_data: Dict[str, Any]
     object: str
     tool_resources: Dict[str, Any]
 
@@ -39,66 +33,53 @@ class ThreadRead(BaseModel):
         orm_mode = True
         from_attributes = True
 
-
 class ThreadParticipant(UserBase):
     pass
 
-
 class ThreadReadDetailed(ThreadRead):
-    participants: List[UserBase]  # This is only for detailed views if needed
+    participants: List[UserBase]
 
     class Config:
         orm_mode = True
         from_attributes = True
 
-
-class Content(BaseModel):
-    text: Dict[str, Any]
-    type: str
-
-
-from pydantic import BaseModel
-from typing import List, Dict, Any, Optional
-
 class MessageCreate(BaseModel):
-    content: List[str]
+    content: str
     thread_id: str
-    sender_id: Optional[str] = None
+    sender_id: str
+    role: str = "user"
     meta_data: Optional[Dict[str, Any]] = {}
-    role: str = "user"  # Force the role to be 'user'
 
     class Config:
         schema_extra = {
             "example": {
-                "content": ["Hello, this is a test message."],
+                "content": "Hello, this is a test message.",
                 "thread_id": "example_thread_id",
                 "sender_id": "example_sender_id",
                 "meta_data": {"key": "value"},
                 "role": "user"
             }
         }
-
 class MessageRead(BaseModel):
     id: str
     assistant_id: Optional[str]
     attachments: List[Any]
     completed_at: Optional[int]
-    content: List[Content]
+    content: str  # Changed from List[Content] to str
     created_at: int
     incomplete_at: Optional[int]
     incomplete_details: Optional[Dict[str, Any]]
-    meta_data: Dict[str, Any]  # updated field name
+    meta_data: Dict[str, Any]
     object: str
     role: str
     run_id: Optional[str]
     status: Optional[str]
     thread_id: str
-    sender_id: str  # Added sender_id field
+    sender_id: str
 
     class Config:
         orm_mode = True
         from_attributes = True
-
 
 class Tool(BaseModel):
     type: str
@@ -119,7 +100,7 @@ class Run(BaseModel):
     last_error: Optional[str]
     max_completion_tokens: Optional[int]
     max_prompt_tokens: Optional[int]
-    meta_data: Dict[str, Any]  # updated field name
+    meta_data: Dict[str, Any]
     model: str
     object: str
     parallel_tool_calls: bool

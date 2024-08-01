@@ -1,5 +1,8 @@
+import json
+
 import httpx
 from typing import List, Dict, Any, Optional
+
 
 class MessageService:
     def __init__(self, base_url: str, api_key: str):
@@ -7,11 +10,8 @@ class MessageService:
         self.api_key = api_key
         self.client = httpx.Client(base_url=base_url, headers={"Authorization": f"Bearer {api_key}"})
 
-    def create_message(self, thread_id: str, content: List[Dict[str, Any]], role: str, sender_id: Optional[str] = None,
+    def create_message(self, thread_id: str, content: str, sender_id: str, role: str = 'user',
                        meta_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        # Set default values if None
-        if sender_id is None:
-            sender_id = ""
         if meta_data is None:
             meta_data = {}
 
@@ -22,10 +22,10 @@ class MessageService:
             "sender_id": sender_id,
             "meta_data": meta_data
         }
+        print(f"Sending message data: {json.dumps(message_data, indent=2)}")
         response = self.client.post("/v1/messages", json=message_data)
         response.raise_for_status()
         return response.json()
-
     def retrieve_message(self, message_id: str) -> Dict[str, Any]:
         response = self.client.get(f"/v1/messages/{message_id}")
         response.raise_for_status()

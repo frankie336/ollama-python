@@ -12,6 +12,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 class MessageService:
     def __init__(self, db: Session):
         self.db = db
@@ -33,7 +34,7 @@ class MessageService:
             assistant_id=None,
             attachments=[],
             completed_at=None,
-            content=[content.dict() for content in message.content],
+            content=message.content,  # Now it's a simple string
             created_at=int(time.time()),
             incomplete_at=None,
             incomplete_details=None,
@@ -148,7 +149,7 @@ class MessageService:
             assistant_id=assistant_id,
             attachments=[],
             completed_at=int(time.time()),
-            content=[{"text": {"value": complete_message, "annotations": []}, "type": "text"}],
+            content=complete_message,  # Now it's a simple string
             created_at=int(time.time()),
             incomplete_at=None,
             incomplete_details=None,
@@ -199,10 +200,9 @@ class MessageService:
         ]
 
         for db_message in db_messages:
-            content = db_message.content[0]['text']['value'] if db_message.content else ""
             formatted_messages.append({
                 "role": db_message.role,
-                "content": content
+                "content": db_message.content
             })
 
         return formatted_messages

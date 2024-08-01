@@ -35,19 +35,10 @@ class OllamaClient:
     def run_service(self):
         return self.run_service
 
-
     def create_message(self, thread_id, content, role, sender_id):
-        data = [
-            {
-                "type": "text",
-                "text": {
-                    "value": content,
-                    "annotations": []
-                }
-            }
-        ]
 
-        message = self.message_service.create_message(thread_id=thread_id, content=data, role=role, sender_id=sender_id)
+        message = self.message_service.create_message(thread_id=thread_id, content=content, role=role, sender_id=sender_id)
+
         return message
 
 

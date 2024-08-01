@@ -14,7 +14,6 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 engine = create_engine(DATABASE_URL)
 
-
 def drop_constraints():
     logging_utility.info("Dropping constraints")
     inspector = inspect(engine)
@@ -26,16 +25,22 @@ def drop_constraints():
                 logging_utility.info("Dropping foreign key %s from table %s", fk_name, table_name)
                 connection.execute(text(f"ALTER TABLE {table_name} DROP FOREIGN KEY {fk_name}"))
 
-
 def drop_tables():
     logging_utility.info("Dropping all tables")
     Base.metadata.drop_all(bind=engine)
-
 
 def create_tables():
     logging_utility.info("Creating all tables")
     Base.metadata.create_all(bind=engine)
 
+def update_messages_content_column():
+    logging_utility.info("Updating messages.content column to TEXT")
+    with engine.connect() as connection:
+        try:
+            connection.execute(text("ALTER TABLE messages MODIFY COLUMN content TEXT;"))
+            logging_utility.info("Successfully updated messages.content column to TEXT")
+        except Exception as e:
+            logging_utility.error(f"Error updating messages.content column: {str(e)}")
 
 def create_app(init_db=True):
     logging_utility.info("Creating FastAPI app")
@@ -53,11 +58,12 @@ def create_app(init_db=True):
         logging_utility.info("Initializing database")
         # Create database tables
         create_tables()
+        # Update messages.content column
+        update_messages_content_column()
 
     return app
 
 app = create_app()
-
 
 def create_test_app():
     logging_utility.info("Creating test app")
@@ -65,4 +71,5 @@ def create_test_app():
     drop_constraints()
     drop_tables()
     create_tables()
+    update_messages_content_column()
     return create_app(init_db=False)
