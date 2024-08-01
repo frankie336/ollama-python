@@ -7,6 +7,7 @@ from services.identifier_service import IdentifierService
 import json
 import time
 
+
 class AssistantService:
     def __init__(self, db: Session):
         self.db = db

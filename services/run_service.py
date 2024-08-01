@@ -1,8 +1,12 @@
+from fastapi import HTTPException
+
 from models.models import Run  # Ensure Run is imported
 from pydantic import parse_obj_as
+from services.identifier_service import IdentifierService
 from api.v1.schemas import Tool
 from sqlalchemy.orm import Session
 from typing import List
+import time
 
 
 class RunService:
@@ -11,11 +15,11 @@ class RunService:
 
     def create_run(self, run_data):
         run = Run(
-            id=run_data.id,
+            id=IdentifierService.generate_run_id(),
             assistant_id=run_data.assistant_id,
             cancelled_at=run_data.cancelled_at,
             completed_at=run_data.completed_at,
-            created_at=run_data.created_at,
+            created_at=int(time.time()),
             expires_at=run_data.expires_at,
             failed_at=run_data.failed_at,
             incomplete_details=run_data.incomplete_details,
@@ -41,6 +45,16 @@ class RunService:
             tool_resources=run_data.tool_resources
         )
         self.db.add(run)
+        self.db.commit()
+        self.db.refresh(run)
+        return run
+
+    def update_run_status(self, run_id: str, new_status: str):
+        run = self.db.query(Run).filter(Run.id == run_id).first()
+        if not run:
+            raise HTTPException(status_code=404, detail="Run not found")
+
+        run.status = new_status
         self.db.commit()
         self.db.refresh(run)
         return run

@@ -121,6 +121,9 @@ class Run(BaseModel):
         orm_mode = True
         from_attributes = True
 
+class RunStatusUpdate(BaseModel):
+    status: str
+
 
 class AssistantCreate(BaseModel):
     name: Optional[str] = None

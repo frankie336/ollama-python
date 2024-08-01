@@ -48,7 +48,7 @@ class IdentifierService:
     @staticmethod
     def generate_run_id() -> str:
         """Generate an assistant ID in the specified format."""
-        return IdentifierService.generate_id("asst")
+        return IdentifierService.generate_id("run")
 
 
 # Example usage:

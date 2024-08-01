@@ -1,14 +1,13 @@
-import json
-from typing import Dict, Any, AsyncGenerator, List
-import httpx
+from typing import Dict, Any, List
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from fastapi.responses import StreamingResponse, JSONResponse
 
 from api.v1.schemas import (
     UserCreate, UserRead, UserUpdate, ThreadCreate, ThreadRead, MessageCreate, MessageRead, Run, AssistantCreate,
-    AssistantRead
+    AssistantRead, RunStatusUpdate  # Add RunStatusUpdate here
 )
+
 from db.database import get_db
 from services.assistant_service import AssistantService
 from services.loggin_service import LoggingUtility
@@ -16,6 +15,7 @@ from services.message_service import MessageService
 from services.run_service import RunService
 from services.thread_service import ThreadService
 from services.user_service import UserService
+
 
 logging_utility = LoggingUtility()
 
@@ -97,6 +97,19 @@ def create_run(run: Run, db: Session = Depends(get_db)):
 def get_run(run_id: str, db: Session = Depends(get_db)):
     run_service = RunService(db)
     return run_service.get_run(run_id)
+
+
+@router.put("/runs/{run_id}/status", response_model=Run)
+def update_run_status(run_id: str, status_update: RunStatusUpdate, db: Session = Depends(get_db)):
+    run_service = RunService(db)
+    try:
+        updated_run = run_service.update_run_status(run_id, status_update.status)
+        return updated_run
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+
 
 
 @router.post("/assistants", response_model=AssistantRead)

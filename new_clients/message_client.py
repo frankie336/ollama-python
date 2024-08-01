@@ -1,6 +1,10 @@
 import json
 import httpx
 from typing import List, Dict, Any, Optional
+from services.loggin_service import LoggingUtility
+
+# Initialize logging utility
+logging_utility = LoggingUtility()
 
 
 class MessageService:
@@ -9,6 +13,7 @@ class MessageService:
         self.api_key = api_key
         self.client = httpx.Client(base_url=base_url, headers={"Authorization": f"Bearer {api_key}"})
         self.message_chunks: Dict[str, List[str]] = {}  # Temporary storage for message chunks
+        logging_utility.info("MessageService initialized with base_url: %s", self.base_url)
 
     def create_message(self, thread_id: str, content: str, sender_id: str, role: str = 'user',
                        meta_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -23,30 +28,71 @@ class MessageService:
             "meta_data": meta_data
         }
 
-        response = self.client.post("/v1/messages", json=message_data)
-        response.raise_for_status()
-        return response.json()
+        logging_utility.info("Creating message for thread_id: %s, role: %s", thread_id, role)
+        try:
+            response = self.client.post("/v1/messages", json=message_data)
+            response.raise_for_status()
+            created_message = response.json()
+            logging_utility.info("Message created successfully with id: %s", created_message.get('id'))
+            return created_message
+        except httpx.HTTPStatusError as e:
+            logging_utility.error("HTTP error occurred while creating message: %s", str(e))
+            raise
+        except Exception as e:
+            logging_utility.error("An error occurred while creating message: %s", str(e))
+            raise
 
     def retrieve_message(self, message_id: str) -> Dict[str, Any]:
-        response = self.client.get(f"/v1/messages/{message_id}")
-        response.raise_for_status()
-        return response.json()
+        logging_utility.info("Retrieving message with id: %s", message_id)
+        try:
+            response = self.client.get(f"/v1/messages/{message_id}")
+            response.raise_for_status()
+            message = response.json()
+            logging_utility.info("Message retrieved successfully")
+            return message
+        except httpx.HTTPStatusError as e:
+            logging_utility.error("HTTP error occurred while retrieving message: %s", str(e))
+            raise
+        except Exception as e:
+            logging_utility.error("An error occurred while retrieving message: %s", str(e))
+            raise
 
     def update_message(self, message_id: str, **updates) -> Dict[str, Any]:
-        response = self.client.put(f"/v1/messages/{message_id}", json=updates)
-        response.raise_for_status()
-        return response.json()
+        logging_utility.info("Updating message with id: %s", message_id)
+        try:
+            response = self.client.put(f"/v1/messages/{message_id}", json=updates)
+            response.raise_for_status()
+            updated_message = response.json()
+            logging_utility.info("Message updated successfully")
+            return updated_message
+        except httpx.HTTPStatusError as e:
+            logging_utility.error("HTTP error occurred while updating message: %s", str(e))
+            raise
+        except Exception as e:
+            logging_utility.error("An error occurred while updating message: %s", str(e))
+            raise
 
     def list_messages(self, thread_id: str, limit: int = 20, order: str = "asc") -> List[Dict[str, Any]]:
+        logging_utility.info("Listing messages for thread_id: %s, limit: %d, order: %s", thread_id, limit, order)
         params = {
             "limit": limit,
             "order": order
         }
-        response = self.client.get(f"/v1/threads/{thread_id}/messages", params=params)
-        response.raise_for_status()
-        return response.json()
+        try:
+            response = self.client.get(f"/v1/threads/{thread_id}/messages", params=params)
+            response.raise_for_status()
+            messages = response.json()
+            logging_utility.info("Retrieved %d messages", len(messages))
+            return messages
+        except httpx.HTTPStatusError as e:
+            logging_utility.error("HTTP error occurred while listing messages: %s", str(e))
+            raise
+        except Exception as e:
+            logging_utility.error("An error occurred while listing messages: %s", str(e))
+            raise
 
-    def get_formatted_messages(self, thread_id: str) -> List[Dict[str, Any]]:
+    def get_formatted_messages(self, thread_id: str, system_message: str = "Be as kind, intelligent, and helpful") -> List[Dict[str, Any]]:
+        logging_utility.info("Getting formatted messages for thread_id: %s", thread_id)
         try:
             response = self.client.get(f"/v1/threads/{thread_id}/formatted_messages")
             response.raise_for_status()
@@ -58,24 +104,39 @@ class MessageService:
             if not formatted_messages or formatted_messages[0].get('role') != 'system':
                 formatted_messages.insert(0, {
                     "role": "system",
-                    "content": "Be as kind, intelligent, and helpful"
+                    "content": system_message
                 })
 
+            logging_utility.info("Retrieved %d formatted messages", len(formatted_messages))
             return formatted_messages
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 404:
+                logging_utility.error("Thread not found: %s", thread_id)
                 raise ValueError(f"Thread not found: {thread_id}")
             else:
+                logging_utility.error("HTTP error occurred: %s", str(e))
                 raise RuntimeError(f"HTTP error occurred: {e}")
         except Exception as e:
+            logging_utility.error("An error occurred: %s", str(e))
             raise RuntimeError(f"An error occurred: {str(e)}")
 
     def delete_message(self, message_id: str) -> Dict[str, Any]:
-        response = self.client.delete(f"/v1/messages/{message_id}")
-        response.raise_for_status()
-        return response.json()
+        logging_utility.info("Deleting message with id: %s", message_id)
+        try:
+            response = self.client.delete(f"/v1/messages/{message_id}")
+            response.raise_for_status()
+            result = response.json()
+            logging_utility.info("Message deleted successfully")
+            return result
+        except httpx.HTTPStatusError as e:
+            logging_utility.error("HTTP error occurred while deleting message: %s", str(e))
+            raise
+        except Exception as e:
+            logging_utility.error("An error occurred while deleting message: %s", str(e))
+            raise
 
     def save_assistant_message_chunk(self, thread_id: str, content: str, is_last_chunk: bool = False) -> Optional[Dict[str, Any]]:
+        logging_utility.info("Saving assistant message chunk for thread_id: %s, is_last_chunk: %s", thread_id, is_last_chunk)
         message_data = {
             "thread_id": thread_id,
             "content": content,
@@ -87,10 +148,12 @@ class MessageService:
         try:
             response = self.client.post("/v1/messages/assistant", json=message_data)
             response.raise_for_status()
-            return response.json()
+            saved_message = response.json()
+            logging_utility.info("Assistant message chunk saved successfully")
+            return saved_message
         except httpx.HTTPStatusError as e:
-            print(f"HTTP error occurred while saving assistant message: {e}")
+            logging_utility.error("HTTP error occurred while saving assistant message chunk: %s", str(e))
             return None
         except Exception as e:
-            print(f"An error occurred while saving assistant message: {str(e)}")
+            logging_utility.error("An error occurred while saving assistant message chunk: %s", str(e))
             return None

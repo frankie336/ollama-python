@@ -1,6 +1,11 @@
 import httpx
 import time
 from typing import List, Dict, Any, Optional
+from services.identifier_service import IdentifierService
+from services.loggin_service import LoggingUtility
+
+# Initialize logging utility
+logging_utility = LoggingUtility()
 
 
 class RunService:
@@ -8,11 +13,12 @@ class RunService:
         self.base_url = base_url
         self.api_key = api_key
         self.client = httpx.Client(base_url=base_url, headers={"Authorization": f"Bearer {api_key}"})
+        logging_utility.info("RunService initialized with base_url: %s", self.base_url)
 
     def create_run(self, assistant_id: str, thread_id: str, instructions: Optional[str] = "",
                    meta_data: Optional[Dict[str, Any]] = {}) -> Dict[str, Any]:
         run_data = {
-            "id": f"run_{assistant_id}_{thread_id}",  # Ensure this id is unique if required by your API
+            "id": IdentifierService.generate_run_id(),
             "assistant_id": assistant_id,
             "thread_id": thread_id,
             "instructions": instructions,
@@ -41,65 +47,136 @@ class RunService:
             "top_p": 0.9,
             "tool_resources": {}
         }
-        response = self.client.post("/v1/runs", json=run_data)
-        print(f"Request payload: {run_data}")  # Add this line to log the request payload
-        print(f"Response status code: {response.status_code}")
-        print(f"Response text: {response.text}")
-        response.raise_for_status()
-        return response.json()
+        logging_utility.info("Creating run for assistant_id: %s, thread_id: %s", assistant_id, thread_id)
+        logging_utility.debug("Run data: %s", run_data)
+        try:
+            response = self.client.post("/v1/runs", json=run_data)
+            response.raise_for_status()
+            created_run = response.json()
+            logging_utility.info("Run created successfully with id: %s", created_run.get('id'))
+            return created_run
+        except httpx.HTTPStatusError as e:
+            logging_utility.error("HTTP error occurred while creating run: %s", str(e))
+            raise
+        except Exception as e:
+            logging_utility.error("An error occurred while creating run: %s", str(e))
+            raise
 
     def retrieve_run(self, run_id: str) -> Dict[str, Any]:
-        response = self.client.get(f"/v1/runs/{run_id}")
-        response.raise_for_status()
-        return response.json()
+        logging_utility.info("Retrieving run with id: %s", run_id)
+        try:
+            response = self.client.get(f"/v1/runs/{run_id}")
+            response.raise_for_status()
+            run = response.json()
+            logging_utility.info("Run retrieved successfully")
+            return run
+        except httpx.HTTPStatusError as e:
+            logging_utility.error("HTTP error occurred while retrieving run: %s", str(e))
+            raise
+        except Exception as e:
+            logging_utility.error("An error occurred while retrieving run: %s", str(e))
+            raise
 
-    def update_run(self, run_id: str, **updates) -> Dict[str, Any]:
-        response = self.client.put(f"/v1/runs/{run_id}", json=updates)
-        response.raise_for_status()
-        return response.json()
+    def update_run_status(self, run_id: str, new_status: str) -> Dict[str, Any]:
+        logging_utility.info("Updating run status for run_id: %s to %s", run_id, new_status)
+        update_data = {
+            "status": new_status
+        }
+        try:
+            response = self.client.put(f"/v1/runs/{run_id}/status", json=update_data)
+            response.raise_for_status()
+            updated_run = response.json()
+            logging_utility.info("Run status updated successfully")
+            return updated_run
+        except httpx.HTTPStatusError as e:
+            logging_utility.error("HTTP error occurred while updating run status: %s", str(e))
+            raise
+        except Exception as e:
+            logging_utility.error("An error occurred while updating run status: %s", str(e))
+            raise
 
     def list_runs(self, limit: int = 20, order: str = "asc") -> List[Dict[str, Any]]:
+        logging_utility.info("Listing runs with limit: %d, order: %s", limit, order)
         params = {
             "limit": limit,
             "order": order
         }
-        response = self.client.get("/v1/runs", params=params)
-        response.raise_for_status()
-        return response.json()
+        try:
+            response = self.client.get("/v1/runs", params=params)
+            response.raise_for_status()
+            runs = response.json()
+            logging_utility.info("Retrieved %d runs", len(runs))
+            return runs
+        except httpx.HTTPStatusError as e:
+            logging_utility.error("HTTP error occurred while listing runs: %s", str(e))
+            raise
+        except Exception as e:
+            logging_utility.error("An error occurred while listing runs: %s", str(e))
+            raise
 
     def delete_run(self, run_id: str) -> Dict[str, Any]:
-        response = self.client.delete(f"/v1/runs/{run_id}")
-        response.raise_for_status()
-        return response.json()
+        logging_utility.info("Deleting run with id: %s", run_id)
+        try:
+            response = self.client.delete(f"/v1/runs/{run_id}")
+            response.raise_for_status()
+            result = response.json()
+            logging_utility.info("Run deleted successfully")
+            return result
+        except httpx.HTTPStatusError as e:
+            logging_utility.error("HTTP error occurred while deleting run: %s", str(e))
+            raise
+        except Exception as e:
+            logging_utility.error("An error occurred while deleting run: %s", str(e))
+            raise
 
     def generate(self, run_id: str, model: str, prompt: str, stream: bool = False) -> Dict[str, Any]:
-        run = self.retrieve_run(run_id)
-        response = self.client.post(
-            "/api/generate",
-            json={
-                "model": model,
-                "prompt": prompt,
-                "stream": stream,
-                "context": run["meta_data"].get("context", []),
-                "temperature": run["temperature"],
-                "top_p": run["top_p"]
-            }
-        )
-        response.raise_for_status()
-        return response.json()
+        logging_utility.info("Generating content for run_id: %s, model: %s", run_id, model)
+        try:
+            run = self.retrieve_run(run_id)
+            response = self.client.post(
+                "/api/generate",
+                json={
+                    "model": model,
+                    "prompt": prompt,
+                    "stream": stream,
+                    "context": run["meta_data"].get("context", []),
+                    "temperature": run["temperature"],
+                    "top_p": run["top_p"]
+                }
+            )
+            response.raise_for_status()
+            result = response.json()
+            logging_utility.info("Content generated successfully")
+            return result
+        except httpx.HTTPStatusError as e:
+            logging_utility.error("HTTP error occurred while generating content: %s", str(e))
+            raise
+        except Exception as e:
+            logging_utility.error("An error occurred while generating content: %s", str(e))
+            raise
 
     def chat(self, run_id: str, model: str, messages: List[Dict[str, Any]], stream: bool = False) -> Dict[str, Any]:
-        run = self.retrieve_run(run_id)
-        response = self.client.post(
-            "/api/chat",
-            json={
-                "model": model,
-                "messages": messages,
-                "stream": stream,
-                "context": run["meta_data"].get("context", []),
-                "temperature": run["temperature"],
-                "top_p": run["top_p"]
-            }
-        )
-        response.raise_for_status()
-        return response.json()
+        logging_utility.info("Chatting for run_id: %s, model: %s", run_id, model)
+        try:
+            run = self.retrieve_run(run_id)
+            response = self.client.post(
+                "/api/chat",
+                json={
+                    "model": model,
+                    "messages": messages,
+                    "stream": stream,
+                    "context": run["meta_data"].get("context", []),
+                    "temperature": run["temperature"],
+                    "top_p": run["top_p"]
+                }
+            )
+            response.raise_for_status()
+            result = response.json()
+            logging_utility.info("Chat completed successfully")
+            return result
+        except httpx.HTTPStatusError as e:
+            logging_utility.error("HTTP error occurred during chat: %s", str(e))
+            raise
+        except Exception as e:
+            logging_utility.error("An error occurred during chat: %s", str(e))
+            raise
