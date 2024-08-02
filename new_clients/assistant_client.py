@@ -1,12 +1,25 @@
-# new_clients/assistant_client.py
 import httpx
 from typing import List, Dict, Any, Optional
+from pydantic import BaseModel, ValidationError
 from services.loggin_service import LoggingUtility
-
 
 # Initialize logging utility
 logging_utility = LoggingUtility()
 
+class Tool(BaseModel):
+    type: str
+    function: Optional[Dict[str, Any]] = None
+    file_search: Optional[Any] = None
+
+class AssistantUpdateParams(BaseModel):
+    name: Optional[str]
+    description: Optional[str]
+    model: Optional[str]
+    instructions: Optional[str]
+    tools: Optional[List[Tool]]
+    meta_data: Optional[Dict[str, Any]]
+    top_p: Optional[float]
+    temperature: Optional[float]
 
 class AssistantService:
     def __init__(self, base_url: str, api_key: str):
@@ -60,14 +73,34 @@ class AssistantService:
             logging_utility.error("An error occurred while retrieving assistant: %s", str(e))
             raise
 
-    def update_assistant(self, assistant_id: str, **updates) -> Dict[str, Any]:
-        logging_utility.info("Updating assistant with id: %s", assistant_id)
+    def update_assistant(self, assistant_id: str, name: Optional[str] = None, description: Optional[str] = None, model: Optional[str] = None, instructions: Optional[str] = None, tools: Optional[List[Dict[str, Any]]] = None, meta_data: Optional[Dict[str, Any]] = None, top_p: Optional[float] = None, temperature: Optional[float] = None) -> Dict[str, Any]:
+        # Construct the update data dictionary
+        update_data = {
+            "name": name,
+            "description": description,
+            "model": model,
+            "instructions": instructions,
+            "tools": tools,
+            "meta_data": meta_data,
+            "top_p": top_p,
+            "temperature": temperature
+        }
+
+        # Remove None values
+        update_data = {k: v for k, v in update_data.items() if v is not None}
+
+        # Validate and parse the updates using Pydantic
         try:
-            response = self.client.put(f"/v1/assistants/{assistant_id}", json=updates)
+            update_params = AssistantUpdateParams(**update_data)
+            logging_utility.info("Updating assistant with id: %s, data: %s", assistant_id, update_params.dict())
+            response = self.client.put(f"/v1/assistants/{assistant_id}", json=update_params.dict(exclude_none=True))
             response.raise_for_status()
             updated_assistant = response.json()
             logging_utility.info("Assistant updated successfully")
             return updated_assistant
+        except ValidationError as e:
+            logging_utility.error("Validation error: %s", e.json())
+            raise ValueError(f"Validation error: {e}")
         except httpx.HTTPStatusError as e:
             logging_utility.error("HTTP error occurred while updating assistant: %s", str(e))
             raise

@@ -52,6 +52,7 @@ class BaseClient:
         logging_utility.info("Initialized BaseClient with headers: %s", headers)
 
 # Client class
+
 class Client(BaseClient):
     def __init__(self, host: Optional[str] = None, **kwargs) -> None:
         super().__init__(httpx.Client, host, **kwargs)

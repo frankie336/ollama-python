@@ -1,8 +1,7 @@
 import json
 import time
 import asyncio
-
-from new_clients.new_ollama_client import OllamaClient
+from ollama.new_ollama_client import OllamaClient
 from services.loggin_service import LoggingUtility
 from ollama import Client
 
