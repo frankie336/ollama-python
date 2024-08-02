@@ -1,4 +1,3 @@
-# api/v1/routers.py
 from typing import Dict, Any, List
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -6,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from api.v1.schemas import (
     UserCreate, UserRead, UserUpdate, ThreadCreate, ThreadRead, MessageCreate, MessageRead, Run, AssistantCreate,
-    AssistantRead, RunStatusUpdate  # Add RunStatusUpdate here
+    AssistantRead, RunStatusUpdate, AssistantUpdate  # Add AssistantUpdate here
 )
 
 from db.database import get_db
@@ -17,19 +16,9 @@ from services.run_service import RunService
 from services.thread_service import ThreadService
 from services.user_service import UserService
 
-
 logging_utility = LoggingUtility()
 
 router = APIRouter()
-
-
-class OllamaClient:
-    def __init__(self, base_url: str = "http://172.21.0.2:11434"):
-        self.base_url = base_url
-
-
-base_url = "http://172.21.0.2:11434"
-ollama_client = OllamaClient(base_url=base_url)
 
 
 @router.post("/users", response_model=UserRead)
@@ -112,7 +101,6 @@ def update_run_status(run_id: str, status_update: RunStatusUpdate, db: Session =
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
 
-
 @router.post("/assistants", response_model=AssistantRead)
 def create_assistant(assistant: AssistantCreate, db: Session = Depends(get_db)):
     assistant_service = AssistantService(db)
@@ -123,6 +111,17 @@ def create_assistant(assistant: AssistantCreate, db: Session = Depends(get_db)):
 def get_assistant(assistant_id: str, db: Session = Depends(get_db)):
     assistant_service = AssistantService(db)
     return assistant_service.get_assistant(assistant_id)
+
+
+@router.put("/assistants/{assistant_id}", response_model=AssistantRead)
+def update_assistant(assistant_id: str, assistant_update: AssistantUpdate, db: Session = Depends(get_db)):
+    assistant_service = AssistantService(db)
+    try:
+        return assistant_service.update_assistant(assistant_id, assistant_update)
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
 
 @router.get("/threads/{thread_id}/formatted_messages", response_model=List[Dict[str, Any]])

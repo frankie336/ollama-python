@@ -1,3 +1,4 @@
+# new_clients/assistant_client.py
 import httpx
 from typing import List, Dict, Any, Optional
 from services.loggin_service import LoggingUtility

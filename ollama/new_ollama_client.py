@@ -1,15 +1,15 @@
-import time
-from dotenv import load_dotenv
-import os
 import json
-from new_clients.user_client import UserService
+import os
+
+from dotenv import load_dotenv
+
 from new_clients.assistant_client import AssistantService
-from new_clients.thread_client import ThreadService
 from new_clients.message_client import MessageService
 from new_clients.run_client import RunService
+from new_clients.thread_client import ThreadService
+from new_clients.user_client import UserService
 from ollama import Client
 from services.loggin_service import LoggingUtility
-from ollama import AsyncClient
 
 # Load environment variables from .env file
 load_dotenv()
