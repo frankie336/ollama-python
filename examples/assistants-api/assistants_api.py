@@ -48,6 +48,7 @@ def streamed_response_helper(messages, thread_id):
         response = ollama_client.chat(
             model='llama3.1',
             messages=messages,
+            options={'num_ctx': 8192},
             stream=True
         )
 

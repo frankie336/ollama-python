@@ -56,6 +56,7 @@ class OllamaClient:
             response = self.ollama_client.chat(
                 model=model,
                 messages=messages,
+                options={'num_ctx': 8192},
                 stream=True
             )
 
