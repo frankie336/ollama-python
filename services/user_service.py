@@ -38,8 +38,9 @@ class UserService:
         if not db_user:
             raise HTTPException(status_code=404, detail="User not found")
 
-        if user_update.name is not None:
-            db_user.name = user_update.name
+        update_data = user_update.dict(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(db_user, key, value)
 
         self.db.commit()
         self.db.refresh(db_user)

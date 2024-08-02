@@ -1,12 +1,13 @@
 import httpx
 import time
 from typing import List, Dict, Any, Optional
+from pydantic import ValidationError
 from services.identifier_service import IdentifierService
 from services.loggin_service import LoggingUtility
+from api.v1.schemas import Run, RunStatusUpdate  # Import the relevant Pydantic models
 
 # Initialize logging utility
 logging_utility = LoggingUtility()
-
 
 class RunService:
     def __init__(self, base_url: str, api_key: str):
@@ -50,11 +51,15 @@ class RunService:
         logging_utility.info("Creating run for assistant_id: %s, thread_id: %s", assistant_id, thread_id)
         logging_utility.debug("Run data: %s", run_data)
         try:
-            response = self.client.post("/v1/runs", json=run_data)
+            validated_data = Run(**run_data)  # Validate data using Pydantic model
+            response = self.client.post("/v1/runs", json=validated_data.dict())
             response.raise_for_status()
             created_run = response.json()
             logging_utility.info("Run created successfully with id: %s", created_run.get('id'))
             return created_run
+        except ValidationError as e:
+            logging_utility.error("Validation error: %s", e.json())
+            raise ValueError(f"Validation error: {e}")
         except httpx.HTTPStatusError as e:
             logging_utility.error("HTTP error occurred while creating run: %s", str(e))
             raise
@@ -62,14 +67,18 @@ class RunService:
             logging_utility.error("An error occurred while creating run: %s", str(e))
             raise
 
-    def retrieve_run(self, run_id: str) -> Dict[str, Any]:
+    def retrieve_run(self, run_id: str) -> Run:
         logging_utility.info("Retrieving run with id: %s", run_id)
         try:
             response = self.client.get(f"/v1/runs/{run_id}")
             response.raise_for_status()
             run = response.json()
+            validated_run = Run(**run)  # Validate data using Pydantic model
             logging_utility.info("Run retrieved successfully")
-            return run
+            return validated_run
+        except ValidationError as e:
+            logging_utility.error("Validation error: %s", e.json())
+            raise ValueError(f"Validation error: {e}")
         except httpx.HTTPStatusError as e:
             logging_utility.error("HTTP error occurred while retrieving run: %s", str(e))
             raise
@@ -77,17 +86,22 @@ class RunService:
             logging_utility.error("An error occurred while retrieving run: %s", str(e))
             raise
 
-    def update_run_status(self, run_id: str, new_status: str) -> Dict[str, Any]:
+    def update_run_status(self, run_id: str, new_status: str) -> Run:
         logging_utility.info("Updating run status for run_id: %s to %s", run_id, new_status)
         update_data = {
             "status": new_status
         }
         try:
-            response = self.client.put(f"/v1/runs/{run_id}/status", json=update_data)
+            validated_data = RunStatusUpdate(**update_data)  # Validate data using Pydantic model
+            response = self.client.put(f"/v1/runs/{run_id}/status", json=validated_data.dict())
             response.raise_for_status()
             updated_run = response.json()
+            validated_run = Run(**updated_run)  # Validate data using Pydantic model
             logging_utility.info("Run status updated successfully")
-            return updated_run
+            return validated_run
+        except ValidationError as e:
+            logging_utility.error("Validation error: %s", e.json())
+            raise ValueError(f"Validation error: {e}")
         except httpx.HTTPStatusError as e:
             logging_utility.error("HTTP error occurred while updating run status: %s", str(e))
             raise
@@ -95,7 +109,7 @@ class RunService:
             logging_utility.error("An error occurred while updating run status: %s", str(e))
             raise
 
-    def list_runs(self, limit: int = 20, order: str = "asc") -> List[Dict[str, Any]]:
+    def list_runs(self, limit: int = 20, order: str = "asc") -> List[Run]:
         logging_utility.info("Listing runs with limit: %d, order: %s", limit, order)
         params = {
             "limit": limit,
@@ -105,8 +119,12 @@ class RunService:
             response = self.client.get("/v1/runs", params=params)
             response.raise_for_status()
             runs = response.json()
-            logging_utility.info("Retrieved %d runs", len(runs))
-            return runs
+            validated_runs = [Run(**run) for run in runs]  # Validate data using Pydantic model
+            logging_utility.info("Retrieved %d runs", len(validated_runs))
+            return validated_runs
+        except ValidationError as e:
+            logging_utility.error("Validation error: %s", e.json())
+            raise ValueError(f"Validation error: {e}")
         except httpx.HTTPStatusError as e:
             logging_utility.error("HTTP error occurred while listing runs: %s", str(e))
             raise
@@ -139,9 +157,9 @@ class RunService:
                     "model": model,
                     "prompt": prompt,
                     "stream": stream,
-                    "context": run["meta_data"].get("context", []),
-                    "temperature": run["temperature"],
-                    "top_p": run["top_p"]
+                    "context": run.meta_data.get("context", []),
+                    "temperature": run.temperature,
+                    "top_p": run.top_p
                 }
             )
             response.raise_for_status()
@@ -165,9 +183,9 @@ class RunService:
                     "model": model,
                     "messages": messages,
                     "stream": stream,
-                    "context": run["meta_data"].get("context", []),
-                    "temperature": run["temperature"],
-                    "top_p": run["top_p"]
+                    "context": run.meta_data.get("context", []),
+                    "temperature": run.temperature,
+                    "top_p": run.top_p
                 }
             )
             response.raise_for_status()
