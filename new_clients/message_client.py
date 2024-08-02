@@ -1,4 +1,6 @@
 import json
+import time
+
 import httpx
 from typing import List, Dict, Any, Optional
 from services.loggin_service import LoggingUtility
@@ -91,8 +93,9 @@ class MessageService:
             logging_utility.error("An error occurred while listing messages: %s", str(e))
             raise
 
-    def get_formatted_messages(self, thread_id: str, system_message: str = "Be as kind, intelligent, and helpful") -> List[Dict[str, Any]]:
+    def get_formatted_messages(self, thread_id: str, system_message: str = "") -> List[Dict[str, Any]]:
         logging_utility.info("Getting formatted messages for thread_id: %s", thread_id)
+        logging_utility.info("Using system message: %s", system_message)
         try:
             response = self.client.get(f"/v1/threads/{thread_id}/formatted_messages")
             response.raise_for_status()
@@ -101,12 +104,20 @@ class MessageService:
             if not isinstance(formatted_messages, list):
                 raise ValueError("Expected a list of messages")
 
-            if not formatted_messages or formatted_messages[0].get('role') != 'system':
+            logging_utility.debug("Initial formatted messages: %s", formatted_messages)
+
+            # Replace the system message if one already exists, otherwise insert it at the beginning
+            if formatted_messages and formatted_messages[0].get('role') == 'system':
+                formatted_messages[0]['content'] = system_message
+                logging_utility.debug("Replaced existing system message with: %s", system_message)
+            else:
                 formatted_messages.insert(0, {
                     "role": "system",
                     "content": system_message
                 })
+                logging_utility.debug("Inserted new system message: %s", system_message)
 
+            logging_utility.info("Formatted messages after insertion: %s", formatted_messages)
             logging_utility.info("Retrieved %d formatted messages", len(formatted_messages))
             return formatted_messages
         except httpx.HTTPStatusError as e:

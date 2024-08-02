@@ -195,7 +195,7 @@ class MessageService:
         formatted_messages = [
             {
                 "role": "system",
-                "content": "Be as kind, intelligent, and helpful"
+                "content": "Your name is Prime"
             }
         ]
 

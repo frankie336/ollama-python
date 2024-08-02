@@ -1,5 +1,3 @@
-import time
-
 from dotenv import load_dotenv
 import os
 import json
@@ -9,8 +7,6 @@ from new_clients.thread_client import ThreadService
 from new_clients.message_client import MessageService
 from new_clients.run_client import RunService
 from ollama import Client
-from services.loggin_service import LoggingUtility
-logging_utility = LoggingUtility()
 
 # Load environment variables from .env file
 load_dotenv()
@@ -67,22 +63,12 @@ class OllamaClient:
 
         print("DEBUG: Exiting send_new_message")
 
-    def process_conversation(self, thread_id, assistant_id, user_message, user_id, model='llama3.1'):
-        logging_utility.info("Processing conversation for thread_id: %s, assistant_id: %s, user_id: %s, model: %s",
-                             thread_id, assistant_id, user_id, model)
-
+    def process_conversation(self, thread_id, user_message, user_id, model='llama3.1'):
         # Create user message
         self.create_message(thread_id, user_message, 'user', user_id)
-        logging_utility.info("Created user message for thread_id: %s, user_id: %s", thread_id, user_id)
-
-        # Get the assistant's system message
-        entity = self.assistant_service.retrieve_assistant(assistant_id=assistant_id)
-        system_message = entity['instructions']
-        logging_utility.info("Retrieved system instructions for assistant_id: %s: %s", assistant_id, system_message)
 
         # Get formatted messages
-        messages = self.message_service.get_formatted_messages(thread_id, system_message=system_message)
-        logging_utility.debug("Formatted messages: %s", messages)
+        messages = self.message_service.get_formatted_messages(thread_id)
 
         # Generate and stream response
         return self.streamed_response_helper(messages, thread_id, model)
@@ -100,19 +86,17 @@ if __name__ == "__main__":
         name='Mathy',
         description='My helpful maths tutor',
         model='llama3.1',
-        #instructions='Be as kind, intelligent, and helpful',
+        instructions='Your name is Prime',
         tools=[{"type": "code_interpreter"}]
     )
-
-    assistant_id = "asst_FuirCRmKlUvz4uNVVottMv"
 
     # Create thread
     thread = client.thread_service.create_thread(participant_ids=[userid], meta_data={"topic": "Test Thread"})
     thread_id = thread['id']
 
     # Process a conversation
-    user_message = "What's your name?"
-    for chunk in client.process_conversation(thread_id, assistant_id=assistant_id, user_message=user_message, user_id=userid):
+    user_message = "Hello, can you help me with a math problem?"
+    for chunk in client.process_conversation(thread_id, user_message, userid):
         # In a real application, you might want to do something with each chunk,
         # like sending it to a frontend. Here we're just printing it.
         pass

@@ -17,7 +17,7 @@ assistant = client.assistant_service.create_assistant(
     name='Mathy',
     description='My helpful maths tutor',
     model='llama3.1',
-    instructions='Be as kind, intelligent, and helpful',
+    #instructions='Be as kind, intelligent, and helpful',
 )
 assistant_id = assistant['id']
 
