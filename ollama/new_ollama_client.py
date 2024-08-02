@@ -9,6 +9,7 @@ from new_clients.message_client import MessageService
 from new_clients.run_client import RunService
 from ollama import Client
 from services.loggin_service import LoggingUtility
+from ollama import AsyncClient
 
 # Load environment variables from .env file
 load_dotenv()
