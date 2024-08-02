@@ -1,3 +1,4 @@
+# api/v1/serializers.py
 from pydantic import BaseModel, ConfigDict
 from typing import List, Optional, Dict, Any
 

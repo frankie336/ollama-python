@@ -60,6 +60,7 @@ class MessageCreate(BaseModel):
                 "role": "user"
             }
         }
+
 class MessageRead(BaseModel):
     id: str
     assistant_id: Optional[str]
@@ -85,7 +86,6 @@ class Tool(BaseModel):
     type: str
     function: Optional[Dict[str, Any]] = None
     file_search: Optional[Any] = None
-
 
 class Run(BaseModel):
     id: str
@@ -124,7 +124,6 @@ class Run(BaseModel):
 class RunStatusUpdate(BaseModel):
     status: str
 
-
 class AssistantCreate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
@@ -135,7 +134,6 @@ class AssistantCreate(BaseModel):
     top_p: Optional[float] = 1.0
     temperature: Optional[float] = 1.0
     response_format: Optional[str] = "auto"
-
 
 class AssistantRead(BaseModel):
     id: str
@@ -150,6 +148,21 @@ class AssistantRead(BaseModel):
     top_p: float
     temperature: float
     response_format: str
+
+    class Config:
+        orm_mode = True
+        from_attributes = True
+
+
+class AssistantUpdate(BaseModel):
+    name: Optional[str]
+    description: Optional[str]
+    model: Optional[str]
+    instructions: Optional[str]
+    tools: Optional[List[Tool]]
+    meta_data: Optional[Dict[str, Any]]
+    top_p: Optional[float]
+    temperature: Optional[float]
 
     class Config:
         orm_mode = True

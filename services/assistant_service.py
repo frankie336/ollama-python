@@ -1,8 +1,9 @@
+# assistant_service.py
 from http.client import HTTPException
 
 from sqlalchemy.orm import Session
 from models.models import Assistant
-from api.v1.schemas import AssistantCreate, AssistantRead
+from api.v1.schemas import AssistantCreate, AssistantRead, AssistantUpdate
 from services.identifier_service import IdentifierService
 import json
 import time
@@ -39,6 +40,25 @@ class AssistantService:
         db_assistant = self.db.query(Assistant).filter(Assistant.id == assistant_id).first()
         if not db_assistant:
             raise HTTPException(status_code=404, detail="Assistant not found")
+        return AssistantRead.from_orm(self._convert_db_assistant(db_assistant))
+
+    def update_assistant(self, assistant_id: str, assistant_update: AssistantUpdate) -> AssistantRead:
+        db_assistant = self.db.query(Assistant).filter(Assistant.id == assistant_id).first()
+        if not db_assistant:
+            raise HTTPException(status_code=404, detail="Assistant not found")
+
+        update_data = assistant_update.dict(exclude_unset=True)
+        if 'tools' in update_data:
+            update_data['tools'] = json.dumps([tool.dict(exclude_unset=True) for tool in assistant_update.tools])
+        if 'meta_data' in update_data:
+            update_data['meta_data'] = json.dumps(assistant_update.meta_data)
+
+        for key, value in update_data.items():
+            setattr(db_assistant, key, value)
+
+        self.db.commit()
+        self.db.refresh(db_assistant)
+
         return AssistantRead.from_orm(self._convert_db_assistant(db_assistant))
 
     def _convert_db_assistant(self, db_assistant: Assistant) -> Assistant:
