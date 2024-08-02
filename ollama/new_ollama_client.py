@@ -50,40 +50,34 @@ class OllamaClient:
         logging_utility.info("Run created with ID: %s", run['id'])
         return run
 
-    def streamed_response_helper(self, messages, thread_id, run_id, model='llama3.1'):
-        logging_utility.info("Starting streamed response for thread_id: %s, run_id: %s, model: %s", thread_id, run_id, model)
+    async def streamed_response_helper(self, messages, thread_id, run_id, model='llama3.1'):
+        logging_utility.info("Starting streamed response for thread_id: %s, run_id: %s, model: %s", thread_id, run_id,
+                             model)
+
         try:
-            response = self.ollama_client.chat(
-                model=model,
-                messages=messages,
-                options={'num_ctx': 4096},
-                stream=True
-            )
+            async with self.ollama_client.chat(
+                    model=model,
+                    messages=messages,
+                    options={'num_ctx': 4096},
+                    stream=True
+            ) as response:
+                logging_utility.info("Response received from Ollama client")
 
-            logging_utility.info("Response received from Ollama client")
-            full_response = ""
-            for chunk in response:
-                content = chunk['message']['content']
-                full_response += content
-                logging_utility.debug("Received chunk: %s", content)
-                yield content
+                async for chunk in response:
+                    content = chunk['message']['content']
+                    yield content
 
-            logging_utility.info("Finished yielding all chunks")
-            logging_utility.debug("Full response: %s", full_response)
+                logging_utility.info("Finished yielding all chunks")
+                full_response = "".join(chunk['message']['content'] for chunk in response)
 
-            saved_message = self.message_service.save_assistant_message_chunk(thread_id, full_response,
-                                                                              is_last_chunk=True)
+                saved_message = await self.message_service.save_assistant_message_chunk(thread_id, full_response,
+                                                                                        is_last_chunk=True)
+                if not saved_message:
+                    logging_utility.warning("Failed to save assistant message")
 
-            if saved_message:
-                logging_utility.info("Assistant message saved successfully")
-            else:
-                logging_utility.warning("Failed to save assistant message")
-
-            updated_run = self.run_service.update_run_status(run_id, "completed")
-            if updated_run:
-                logging_utility.info("Run status updated to completed for run_id: %s", run_id)
-            else:
-                logging_utility.warning("Failed to update run status for run_id: %s", run_id)
+                updated_run = await self.run_service.update_run_status(run_id, "completed")
+                if not updated_run:
+                    logging_utility.warning("Failed to update run status for run_id: %s", run_id)
 
         except Exception as e:
             logging_utility.error("Error in streamed_response_helper: %s", str(e), exc_info=True)
