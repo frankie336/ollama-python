@@ -2,24 +2,10 @@ import httpx
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, ValidationError
 from services.loggin_service import LoggingUtility
+from api.v1.schemas import AssistantCreate, AssistantRead, AssistantUpdate  # Import the relevant Pydantic models
 
 # Initialize logging utility
 logging_utility = LoggingUtility()
-
-class Tool(BaseModel):
-    type: str
-    function: Optional[Dict[str, Any]] = None
-    file_search: Optional[Any] = None
-
-class AssistantUpdateParams(BaseModel):
-    name: Optional[str]
-    description: Optional[str]
-    model: Optional[str]
-    instructions: Optional[str]
-    tools: Optional[List[Tool]]
-    meta_data: Optional[Dict[str, Any]]
-    top_p: Optional[float]
-    temperature: Optional[float]
 
 
 class AssistantService:
@@ -45,13 +31,18 @@ class AssistantService:
             "temperature": 1.0,
             "response_format": "auto"
         }
-        logging_utility.info("Creating assistant with model: %s, name: %s", model, name)
+
         try:
-            response = self.client.post("/v1/assistants", json=assistant_data)
+            validated_data = AssistantCreate(**assistant_data)  # Validate data using Pydantic model
+            logging_utility.info("Creating assistant with model: %s, name: %s", model, name)
+            response = self.client.post("/v1/assistants", json=validated_data.dict())
             response.raise_for_status()
             created_assistant = response.json()
             logging_utility.info("Assistant created successfully with id: %s", created_assistant.get('id'))
             return created_assistant
+        except ValidationError as e:
+            logging_utility.error("Validation error: %s", e.json())
+            raise ValueError(f"Validation error: {e}")
         except httpx.HTTPStatusError as e:
             logging_utility.error("HTTP error occurred while creating assistant: %s", str(e))
             raise
@@ -59,14 +50,18 @@ class AssistantService:
             logging_utility.error("An error occurred while creating assistant: %s", str(e))
             raise
 
-    def retrieve_assistant(self, assistant_id: str) -> Dict[str, Any]:
+    def retrieve_assistant(self, assistant_id: str) -> AssistantRead:
         logging_utility.info("Retrieving assistant with id: %s", assistant_id)
         try:
             response = self.client.get(f"/v1/assistants/{assistant_id}")
             response.raise_for_status()
             assistant = response.json()
+            validated_data = AssistantRead(**assistant)  # Validate data using Pydantic model
             logging_utility.info("Assistant retrieved successfully")
-            return assistant
+            return validated_data
+        except ValidationError as e:
+            logging_utility.error("Validation error: %s", e.json())
+            raise ValueError(f"Validation error: {e}")
         except httpx.HTTPStatusError as e:
             logging_utility.error("HTTP error occurred while retrieving assistant: %s", str(e))
             raise
@@ -74,31 +69,16 @@ class AssistantService:
             logging_utility.error("An error occurred while retrieving assistant: %s", str(e))
             raise
 
-    def update_assistant(self, assistant_id: str, name: Optional[str] = None, description: Optional[str] = None, model: Optional[str] = None, instructions: Optional[str] = None, tools: Optional[List[Dict[str, Any]]] = None, meta_data: Optional[Dict[str, Any]] = None, top_p: Optional[float] = None, temperature: Optional[float] = None) -> Dict[str, Any]:
-        # Construct the update data dictionary
-        update_data = {
-            "name": name,
-            "description": description,
-            "model": model,
-            "instructions": instructions,
-            "tools": tools,
-            "meta_data": meta_data,
-            "top_p": top_p,
-            "temperature": temperature
-        }
-
-        # Remove None values
-        update_data = {k: v for k, v in update_data.items() if v is not None}
-
-        # Validate and parse the updates using Pydantic
+    def update_assistant(self, assistant_id: str, **updates) -> AssistantRead:
+        logging_utility.info("Updating assistant with id: %s", assistant_id)
         try:
-            update_params = AssistantUpdateParams(**update_data)
-            logging_utility.info("Updating assistant with id: %s, data: %s", assistant_id, update_params.dict())
-            response = self.client.put(f"/v1/assistants/{assistant_id}", json=update_params.dict(exclude_none=True))
+            validated_data = AssistantUpdate(**updates)  # Validate data using Pydantic model
+            response = self.client.put(f"/v1/assistants/{assistant_id}", json=validated_data.dict(exclude_unset=True))
             response.raise_for_status()
             updated_assistant = response.json()
+            validated_response = AssistantRead(**updated_assistant)  # Validate response using Pydantic model
             logging_utility.info("Assistant updated successfully")
-            return updated_assistant
+            return validated_response
         except ValidationError as e:
             logging_utility.error("Validation error: %s", e.json())
             raise ValueError(f"Validation error: {e}")
@@ -109,7 +89,7 @@ class AssistantService:
             logging_utility.error("An error occurred while updating assistant: %s", str(e))
             raise
 
-    def list_assistants(self, limit: int = 20, order: str = "asc") -> List[Dict[str, Any]]:
+    def list_assistants(self, limit: int = 20, order: str = "asc") -> List[AssistantRead]:
         logging_utility.info("Listing assistants with limit: %d, order: %s", limit, order)
         params = {
             "limit": limit,
@@ -119,8 +99,12 @@ class AssistantService:
             response = self.client.get("/v1/assistants", params=params)
             response.raise_for_status()
             assistants = response.json()
-            logging_utility.info("Retrieved %d assistants", len(assistants))
-            return assistants
+            validated_assistants = [AssistantRead(**assistant) for assistant in assistants]  # Validate response using Pydantic model
+            logging_utility.info("Retrieved %d assistants", len(validated_assistants))
+            return validated_assistants
+        except ValidationError as e:
+            logging_utility.error("Validation error: %s", e.json())
+            raise ValueError(f"Validation error: {e}")
         except httpx.HTTPStatusError as e:
             logging_utility.error("HTTP error occurred while listing assistants: %s", str(e))
             raise

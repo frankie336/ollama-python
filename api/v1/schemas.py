@@ -33,6 +33,14 @@ class ThreadRead(BaseModel):
         orm_mode = True
         from_attributes = True
 
+class ThreadUpdate(BaseModel):
+    participant_ids: Optional[List[str]]
+    meta_data: Optional[Dict[str, Any]]
+
+    class Config:
+        orm_mode = True
+        from_attributes = True
+
 class ThreadParticipant(UserBase):
     pass
 
@@ -77,6 +85,15 @@ class MessageRead(BaseModel):
     status: Optional[str]
     thread_id: str
     sender_id: str
+
+    class Config:
+        orm_mode = True
+        from_attributes = True
+
+class MessageUpdate(BaseModel):
+    content: Optional[str]
+    meta_data: Optional[Dict[str, Any]]
+    status: Optional[str]
 
     class Config:
         orm_mode = True
@@ -152,7 +169,6 @@ class AssistantRead(BaseModel):
     class Config:
         orm_mode = True
         from_attributes = True
-
 
 class AssistantUpdate(BaseModel):
     name: Optional[str]

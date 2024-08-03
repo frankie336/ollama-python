@@ -172,3 +172,42 @@ except ollama.ResponseError as e:
   if e.status_code == 404:
     ollama.pull(model)
 ```
+
+## Assistants API v1 Beta
+
+The Assistants API is an extension providing integrated state management, similar to the @OpenAI Assistants API. 
+
+All state information is stored in a Docker container and may remain as such on local devices, or be deployed in a data center of choice. Built with a focus on absolute privacy whilst implementing advanced infrastructure required to host a scalable and diverse number of distinct AI entities.
+
+### Initializing the Extended Ollama Client
+
+## Assistants API v1 Beta
+
+The Assistants API is an extension providing integrated state management, similar to the @OpenAI Assistants API. 
+
+All state information is stored in a Docker container and may remain as such on local devices, or be deployed in a data center of choice. Built with a focus on absolute privacy whilst implementing advanced infrastructure required to host a scalable and diverse number of distinct AI entities.
+
+### Initializing the Extended Ollama Client
+
+```python
+from ollama import OllamaClient
+
+# Initialize the assisants client 
+client = OllamaClient()
+
+# Creating a User 
+user1 = client.user_service.create_user(name='Test')
+userid = user1['id']
+print(f"Created user with ID: {userid}")
+
+# Creating an Assistant
+
+assistant = client.assistant_service.create_assistant(
+    name='Mathy',
+    description='My helpful maths tutor',
+    model='llama3.1',
+    instructions='Be as kind, intelligent, and helpful',
+    tools=[{"type": "code_interpreter"}]
+)
+assistant_id = assistant['id']
+print(f"Created assistant with ID: {assistant_id}")
