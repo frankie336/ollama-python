@@ -23,6 +23,11 @@ class UserUpdate(BaseModel):
     name: Optional[str] = None
 
 
+class UserDeleteResponse(BaseModel):
+    success: bool
+    message: Optional[str] = None
+
+
 class ThreadCreate(BaseModel):
     participant_ids: Optional[List[str]] = None
     meta_data: Optional[Dict[str, Any]] = {}
@@ -82,7 +87,7 @@ class MessageRead(BaseModel):
     assistant_id: Optional[str]
     attachments: List[Any]
     completed_at: Optional[int]
-    content: str  # Changed from List[Content] to str
+    content: str
     created_at: int
     incomplete_at: Optional[int]
     incomplete_details: Optional[Dict[str, Any]]
@@ -146,6 +151,7 @@ class Run(BaseModel):
     class Config:
         from_attributes = True
 
+
 class RunStatusUpdate(BaseModel):
     status: str
 
@@ -178,6 +184,7 @@ class AssistantRead(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 class AssistantUpdate(BaseModel):
     name: Optional[str]
