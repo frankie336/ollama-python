@@ -421,9 +421,6 @@ class RunService:
 # OllamaClient class
 
 
-
-
-
 class OllamaClient(BaseClient):
     def __init__(self, base_url: str, api_key: str, run_service: RunService):
         super().__init__(httpx.Client, base_url)
