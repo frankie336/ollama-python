@@ -89,7 +89,7 @@ class MessageService:
             logging_utility.error("An error occurred while updating message: %s", str(e))
             raise
 
-    def list_messages(self, thread_id: str, limit: int = 20, order: str = "asc") -> List[MessageRead]:
+    def list_messages(self, thread_id: str, limit: int = 20, order: str = "asc") -> List[Dict[str, Any]]:
         logging_utility.info("Listing messages for thread_id: %s, limit: %d, order: %s", thread_id, limit, order)
         params = {
             "limit": limit,
@@ -99,9 +99,10 @@ class MessageService:
             response = self.client.get(f"/v1/threads/{thread_id}/messages", params=params)
             response.raise_for_status()
             messages = response.json()
-            validated_messages = [MessageRead(**message) for message in messages]  # Validate response using Pydantic model
+            validated_messages = [MessageRead(**message) for message in
+                                  messages]  # Validate response using Pydantic model
             logging_utility.info("Retrieved %d messages", len(validated_messages))
-            return validated_messages
+            return [message.dict() for message in validated_messages]  # Convert Pydantic models to dictionaries
         except ValidationError as e:
             logging_utility.error("Validation error: %s", e.json())
             raise ValueError(f"Validation error: {e}")

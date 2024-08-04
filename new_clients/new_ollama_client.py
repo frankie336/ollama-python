@@ -113,7 +113,7 @@ if __name__ == "__main__":
     client = OllamaClient()
 
     user1 = client.user_service.create_user(name='Test')
-    userid = user1['id']
+    userid = user1.id
     logging_utility.info("Created user with ID: %s", userid)
 
     assistant = client.assistant_service.create_assistant(
