@@ -19,7 +19,7 @@ class UserService:
         logging_utility.info("Creating user with name: %s", name)
         user_data = UserCreate(name=name)
         try:
-            response = self.client.post("/v1/users", json=user_data.dict())
+            response = self.client.post("/v1/users", json=user_data.model_dump())
             response.raise_for_status()
             created_user = response.json()
             validated_user = UserRead(**created_user)
@@ -53,11 +53,11 @@ class UserService:
         logging_utility.info("Updating user with id: %s", user_id)
         try:
             current_user = self.retrieve_user(user_id)
-            user_data = current_user.dict()
+            user_data = current_user.model_dump()
             user_data.update(updates)
 
             validated_data = UserUpdate(**user_data)  # Validate data using Pydantic model
-            response = self.client.put(f"/v1/users/{user_id}", json=validated_data.dict(exclude_unset=True))
+            response = self.client.put(f"/v1/users/{user_id}", json=validated_data.model_dump(exclude_unset=True))
             response.raise_for_status()
             updated_user = response.json()
             validated_response = UserRead(**updated_user)  # Validate response using Pydantic model

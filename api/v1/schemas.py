@@ -118,6 +118,40 @@ class Tool(BaseModel):
     file_search: Optional[Any] = None
 
 
+class RunCreate(BaseModel):
+    id: str
+    assistant_id: str
+    cancelled_at: Optional[int] = None
+    completed_at: Optional[int] = None
+    created_at: int
+    expires_at: int
+    failed_at: Optional[int] = None
+    incomplete_details: Optional[Dict[str, Any]] = None
+    instructions: str
+    last_error: Optional[str] = None
+    max_completion_tokens: Optional[int] = 1000
+    max_prompt_tokens: Optional[int] = 500
+    meta_data: Dict[str, Any] = {}
+    model: str = "gpt-4"
+    object: str = "run"
+    parallel_tool_calls: bool = False
+    required_action: Optional[str] = None
+    response_format: str = "text"
+    started_at: Optional[int] = None
+    status: str = "pending"
+    thread_id: str
+    tool_choice: str = "none"
+    tools: List[Tool] = []
+    truncation_strategy: Dict[str, Any] = {}
+    usage: Optional[Any] = None
+    temperature: float = 0.7
+    top_p: float = 0.9
+    tool_resources: Dict[str, Any] = {}
+
+    class Config:
+        from_attributes = True
+
+
 class Run(BaseModel):
     id: str
     assistant_id: str

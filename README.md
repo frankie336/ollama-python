@@ -222,10 +222,68 @@ client.message_service.create_message(
 
 run = client.run_service.create_run(assistant_id=assistant.id, thread_id=thread.id)
 print(run)
+
+# Processing a Run
+
 ```
+
 ### Steps
 
 Set the initial state and execute a message by following the steps above. The message is sent to the assistant, and conversation dialogue is automatically saved to a thread instance.
 
 
+### Processing a Run
 
+Only streamed responses are supported, but that will soon change.
+
+```python
+for chunk in client.process_conversation(thread_id=thread.id,run_id=run_id, assistant_id=assistant_id):
+       print('Do something with the streamed chunks')
+
+```
+
+### Dealing with streamed content on the back end 
+
+Below is a simplified example of how you might set up a run, and deal with streamed output: 
+
+```python
+
+import ollama
+import json
+client = ollama.OllamaClient()
+
+
+def start_new_conversation(user_message, user_id, selected_model):
+    try:
+
+        # Create Assistant
+        assistant = client.assistant_service.create_assistant(model='llama3.1')
+        
+        # Create user
+        user1 = client.user_service.create_user(name='Test')
+
+        thread = client.thread_service.create_thread()
+
+        message = client.message_service.create_message(thread_id=thread.id,
+                                                        content=user_message,
+                                                        sender_id=user1.id,
+                                                        role='user')
+
+        run = client.run_service.create_run(assistant_id=assistant.id, thread_id=thread.id)
+        run_id = run['id']
+
+        def generate():
+            yield f"data: {json.dumps({'thread_id': thread.id})}\n\n"
+            try:
+                for chunk in client.process_conversation(thread_id=thread.id, run_id=run_id, assistant_id=assistant.id, model=selected_model):
+                    yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+            except Exception as e:
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+            yield "data: [DONE]\n\n"
+
+        return Response(stream_with_context(generate()), mimetype='text/event-stream')
+
+    except Exception as e:
+        return jsonify({'error': 'An error occurred while starting a new conversation'}), 500
+
+```
