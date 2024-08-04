@@ -179,26 +179,18 @@ The Assistants API is an extension providing integrated state management, simila
 
 All state information is stored in a Docker container and may remain as such on local devices, or be deployed in a data center of choice. Built with a focus on absolute privacy whilst implementing advanced infrastructure required to host a scalable and diverse number of distinct AI entities.
 
-### Initializing the Extended Ollama Client
 
-## Assistants API v1 Beta
-
-The Assistants API is an extension providing integrated state management, similar to the @OpenAI Assistants API. 
-
-All state information is stored in a Docker container and may remain as such on local devices, or be deployed in a data center of choice. Built with a focus on absolute privacy whilst implementing advanced infrastructure required to host a scalable and diverse number of distinct AI entities.
-
-### Initializing the Extended Ollama Client
+### Initializing the Assistants API v1 Beta Client
 
 ```python
 from ollama import OllamaClient
 
-# Initialize the assisants client 
+# Initialize the assistants client 
 client = OllamaClient()
 
 # Creating a User 
 user1 = client.user_service.create_user(name='Test')
-userid = user1['id']
-print(f"Created user with ID: {userid}")
+print(f"Created user with ID: {user1.id}")
 
 # Creating an Assistant
 
@@ -209,5 +201,31 @@ assistant = client.assistant_service.create_assistant(
     instructions='Be as kind, intelligent, and helpful',
     tools=[{"type": "code_interpreter"}]
 )
-assistant_id = assistant['id']
-print(f"Created assistant with ID: {assistant_id}")
+
+print(f"Created assistant with ID: {assistant.id}")
+
+# Creating a Thread
+
+thread = client.thread_service.create_thread()
+print(thread)
+
+# Creating a Message
+
+client.message_service.create_message(
+    thread_id=thread.id,
+    content='Can you help me solve a math equation?',
+    role='user',
+    sender_id=user1.id
+)
+
+# Creating Run
+
+run = client.run_service.create_run(assistant_id=assistant.id, thread_id=thread.id)
+print(run)
+```
+### Steps
+
+Set the initial state and execute a message by following the steps above. The message is sent to the assistant, and conversation dialogue is automatically saved to a thread instance.
+
+
+
