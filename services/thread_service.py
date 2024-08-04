@@ -5,7 +5,7 @@ from api.v1.schemas import ThreadCreate, ThreadReadDetailed, UserBase, MessageRe
 from services.identifier_service import IdentifierService
 import json
 import time
-
+from typing import List
 
 class ThreadService:
     def __init__(self, db: Session):
@@ -73,3 +73,7 @@ class ThreadService:
         # Delete the thread itself
         self.db.delete(db_thread)
         self.db.commit()
+
+    def list_threads_by_user(self, user_id: str) -> List[str]:
+        threads = self.db.query(Thread).join(Thread.participants).filter(User.id == user_id).all()
+        return [thread.id for thread in threads]

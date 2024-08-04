@@ -8,6 +8,7 @@ from api.v1.schemas import AssistantCreate, AssistantRead, AssistantUpdate
 # Initialize logging utility
 logging_utility = LoggingUtility()
 
+
 class AssistantService:
     def __init__(self, base_url: str, api_key: str):
         self.base_url = base_url
@@ -15,12 +16,13 @@ class AssistantService:
         self.client = httpx.Client(base_url=base_url, headers={"Authorization": f"Bearer {api_key}"})
         logging_utility.info("AssistantService initialized with base_url: %s", self.base_url)
 
-    def create_assistant(self, model: str, name: str = "", description: str = "", instructions: str = "",
+    def create_assistant(self, user_id: str, model: str, name: str = "", description: str = "", instructions: str = "",
                          tools: List[Dict[str, Any]] = None) -> AssistantRead:
         if tools is None:
             tools = []
 
         assistant_data = {
+            "user_id": user_id,
             "name": name,
             "description": description,
             "model": model,
@@ -149,10 +151,9 @@ if __name__ == "__main__":
 
     try:
         # Create an assistant
-        created_assistant = assistant_service.create_assistant(model="gpt-3", name="Test Assistant")
+        user_id = "user_zFu5VPLgtpzGIqMN30eccb"
+        created_assistant = assistant_service.create_assistant(user_id=user_id, model="gpt-3", name="Test Assistant")
         logging_utility.info("Created assistant: %s", created_assistant)
-
-
 
         # Retrieve the assistant
         retrieved_assistant = assistant_service.retrieve_assistant(created_assistant.id)
@@ -161,7 +162,6 @@ if __name__ == "__main__":
         # Update the assistant with only the fields we want to change
         updated_assistant = assistant_service.update_assistant(retrieved_assistant.id, name="Updated Test Assistant")
         logging_utility.info("Updated assistant: %s", updated_assistant)
-
 
     except Exception as e:
         logging_utility.error("An error occurred during AssistantService test: %s", str(e))

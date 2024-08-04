@@ -10,7 +10,6 @@ thread_participants = Table(
     Column('user_id', String(64), ForeignKey('users.id'), primary_key=True)
 )
 
-
 class User(Base):
     __tablename__ = "users"
 
@@ -18,6 +17,7 @@ class User(Base):
     name = Column(String(128), index=True)
 
     threads = relationship('Thread', secondary=thread_participants, back_populates='participants')
+    assistants = relationship('Assistant', back_populates='user')  # Add this line
 
 
 class Thread(Base):
@@ -88,6 +88,7 @@ class Assistant(Base):
     __tablename__ = "assistants"
 
     id = Column(String(64), primary_key=True, index=True)
+    user_id = Column(String(64), ForeignKey('users.id'), nullable=False)
     object = Column(String(64), nullable=False)
     created_at = Column(Integer, nullable=False, default=lambda: int(time.time()))
     name = Column(String(128), nullable=False)
@@ -99,3 +100,5 @@ class Assistant(Base):
     top_p = Column(Integer, nullable=True)
     temperature = Column(Integer, nullable=True)
     response_format = Column(String(64), nullable=True)
+
+    user = relationship('User', back_populates='assistants')

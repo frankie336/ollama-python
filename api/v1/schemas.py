@@ -1,7 +1,5 @@
-from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
-
 
 class UserBase(BaseModel):
     id: str
@@ -10,28 +8,22 @@ class UserBase(BaseModel):
     class Config:
         from_attributes = True
 
-
 class UserCreate(BaseModel):
     name: Optional[str] = "Anonymous User"
-
 
 class UserRead(UserBase):
     pass
 
-
 class UserUpdate(BaseModel):
     name: Optional[str] = None
-
 
 class UserDeleteResponse(BaseModel):
     success: bool
     message: Optional[str] = None
 
-
 class ThreadCreate(BaseModel):
-    participant_ids: Optional[List[str]] = None
+    participant_ids: List[str] = Field(..., description="List of participant IDs")
     meta_data: Optional[Dict[str, Any]] = {}
-
 
 class ThreadRead(BaseModel):
     id: str
@@ -43,7 +35,6 @@ class ThreadRead(BaseModel):
     class Config:
         from_attributes = True
 
-
 class ThreadUpdate(BaseModel):
     participant_ids: Optional[List[str]]
     meta_data: Optional[Dict[str, Any]]
@@ -51,10 +42,8 @@ class ThreadUpdate(BaseModel):
     class Config:
         from_attributes = True
 
-
 class ThreadParticipant(UserBase):
     pass
-
 
 class ThreadReadDetailed(ThreadRead):
     participants: List[UserBase]
@@ -62,6 +51,11 @@ class ThreadReadDetailed(ThreadRead):
     class Config:
         from_attributes = True
 
+class ThreadIds(BaseModel):
+    thread_ids: List[str]
+
+    class Config:
+        from_attributes = True
 
 class MessageCreate(BaseModel):
     content: str
@@ -80,7 +74,6 @@ class MessageCreate(BaseModel):
                 "role": "user"
             }
         }
-
 
 class MessageRead(BaseModel):
     id: str
@@ -102,7 +95,6 @@ class MessageRead(BaseModel):
     class Config:
         from_attributes = True
 
-
 class MessageUpdate(BaseModel):
     content: Optional[str]
     meta_data: Optional[Dict[str, Any]]
@@ -111,12 +103,10 @@ class MessageUpdate(BaseModel):
     class Config:
         from_attributes = True
 
-
 class Tool(BaseModel):
     type: str
     function: Optional[Dict[str, Any]] = None
     file_search: Optional[Any] = None
-
 
 class RunCreate(BaseModel):
     id: str
@@ -151,7 +141,6 @@ class RunCreate(BaseModel):
     class Config:
         from_attributes = True
 
-
 class Run(BaseModel):
     id: str
     assistant_id: str
@@ -185,12 +174,11 @@ class Run(BaseModel):
     class Config:
         from_attributes = True
 
-
 class RunStatusUpdate(BaseModel):
     status: str
 
-
 class AssistantCreate(BaseModel):
+    user_id: str
     name: Optional[str] = None
     description: Optional[str] = None
     model: str
@@ -201,9 +189,9 @@ class AssistantCreate(BaseModel):
     temperature: Optional[float] = 1.0
     response_format: Optional[str] = "auto"
 
-
 class AssistantRead(BaseModel):
     id: str
+    user_id: str
     object: str
     created_at: int
     name: str
@@ -218,7 +206,6 @@ class AssistantRead(BaseModel):
 
     class Config:
         from_attributes = True
-
 
 class AssistantUpdate(BaseModel):
     name: Optional[str]

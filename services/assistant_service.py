@@ -1,23 +1,26 @@
-# assistant_service.py
 from http.client import HTTPException
-
 from sqlalchemy.orm import Session
-from models.models import Assistant
+from models.models import Assistant, User
 from api.v1.schemas import AssistantCreate, AssistantRead, AssistantUpdate
 from services.identifier_service import IdentifierService
 import json
 import time
-
 
 class AssistantService:
     def __init__(self, db: Session):
         self.db = db
 
     def create_assistant(self, assistant: AssistantCreate) -> AssistantRead:
+        # Check if the user exists
+        db_user = self.db.query(User).filter(User.id == assistant.user_id).first()
+        if not db_user:
+            raise HTTPException(status=404, detail="User not found")
+
         assistant_id = IdentifierService.generate_assistant_id()
         tools_json = json.dumps([tool.dict(exclude_unset=True) for tool in assistant.tools])  # Convert list of Tool objects to JSON
         db_assistant = Assistant(
             id=assistant_id,
+            user_id=assistant.user_id,
             object="assistant",  # Set the object field
             created_at=int(time.time()),
             name=assistant.name,
@@ -39,13 +42,13 @@ class AssistantService:
     def get_assistant(self, assistant_id: str) -> AssistantRead:
         db_assistant = self.db.query(Assistant).filter(Assistant.id == assistant_id).first()
         if not db_assistant:
-            raise HTTPException(status_code=404, detail="Assistant not found")
+            raise HTTPException(status=404, detail="Assistant not found")
         return AssistantRead.from_orm(self._convert_db_assistant(db_assistant))
 
     def update_assistant(self, assistant_id: str, assistant_update: AssistantUpdate) -> AssistantRead:
         db_assistant = self.db.query(Assistant).filter(Assistant.id == assistant_id).first()
         if not db_assistant:
-            raise HTTPException(status_code=404, detail="Assistant not found")
+            raise HTTPException(status=404, detail="Assistant not found")
 
         update_data = assistant_update.dict(exclude_unset=True)
         if 'tools' in update_data:

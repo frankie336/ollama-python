@@ -1,13 +1,10 @@
 from typing import Dict, Any, List
-
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-
 from api.v1.schemas import (
     UserCreate, UserRead, UserUpdate, ThreadCreate, ThreadRead, MessageCreate, MessageRead, Run, AssistantCreate,
-    AssistantRead, RunStatusUpdate, AssistantUpdate
+    AssistantRead, RunStatusUpdate, AssistantUpdate, ThreadIds
 )
-
 from db.database import get_db
 from services.assistant_service import AssistantService
 from services.loggin_service import LoggingUtility
@@ -64,6 +61,21 @@ def delete_thread(thread_id: str, db: Session = Depends(get_db)):
         raise e
     except Exception as e:
         logging_utility.error(f"An error occurred while deleting thread: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+
+@router.get("/users/{user_id}/threads", response_model=ThreadIds)
+def list_threads_by_user(user_id: str, db: Session = Depends(get_db)):
+    logging_utility.info(f"Listing threads for user ID: {user_id}")
+    thread_service = ThreadService(db)
+    try:
+        thread_ids = thread_service.list_threads_by_user(user_id)
+        logging_utility.info(f"Successfully retrieved threads for user ID: {user_id}")
+        return {"thread_ids": thread_ids}
+    except HTTPException as e:
+        logging_utility.error(f"HTTP error occurred while listing threads: {str(e)}")
+        raise e
+    except Exception as e:
+        logging_utility.error(f"An error occurred while listing threads: {str(e)}")
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
 @router.post("/messages", response_model=MessageRead)
