@@ -58,3 +58,18 @@ class ThreadService:
             tool_resources=json.loads(db_thread.tool_resources),  # Convert JSON string back to dict
             participants=participants  # Include participants in the response
         )
+
+    def delete_thread(self, thread_id: str) -> None:
+        db_thread = self.db.query(Thread).filter(Thread.id == thread_id).first()
+        if not db_thread:
+            raise HTTPException(status_code=404, detail="Thread not found")
+
+        # Remove all messages associated with the thread
+        self.db.query(Message).filter(Message.thread_id == thread_id).delete()
+
+        # Remove relationships with participants
+        db_thread.participants = []
+
+        # Delete the thread itself
+        self.db.delete(db_thread)
+        self.db.commit()

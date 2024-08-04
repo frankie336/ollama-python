@@ -123,14 +123,12 @@ class ThreadService:
             logging_utility.error("An error occurred while listing threads: %s", str(e))
             raise
 
-    def delete_thread(self, thread_id: str) -> Dict[str, Any]:
+    def delete_thread(self, thread_id: str) -> None:
         logging_utility.info("Deleting thread with id: %s", thread_id)
         try:
             response = self.client.delete(f"/v1/threads/{thread_id}")
             response.raise_for_status()
-            result = response.json()
             logging_utility.info("Thread deleted successfully")
-            return result
         except httpx.HTTPStatusError as e:
             logging_utility.error("HTTP error occurred while deleting thread: %s", str(e))
             raise
