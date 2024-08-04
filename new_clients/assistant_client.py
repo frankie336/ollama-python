@@ -37,7 +37,9 @@ class AssistantService:
         try:
             validated_data = AssistantCreate(**assistant_data)  # Validate data using Pydantic model
             logging_utility.info("Creating assistant with model: %s, name: %s", model, name)
-            response = self.client.post("/v1/assistants", json=validated_data.dict())
+
+            response = self.client.post("/v1/assistants", json=validated_data.model_dump())
+
             response.raise_for_status()
             created_assistant = response.json()
             validated_response = AssistantRead(**created_assistant)  # Validate response using Pydantic model
@@ -79,12 +81,14 @@ class AssistantService:
             current_assistant = self.retrieve_assistant(assistant_id)
 
             # Merge the updates with the current state
-            assistant_data = current_assistant.dict()
+            assistant_data = current_assistant.model_dump()
             assistant_data.update(updates)
 
             # Validate the merged data
             validated_data = AssistantUpdate(**assistant_data)  # Validate data using Pydantic model
-            response = self.client.put(f"/v1/assistants/{assistant_id}", json=validated_data.dict(exclude_unset=True))
+
+            response = self.client.put(f"/v1/assistants/{assistant_id}",
+                                       json=validated_data.model_dump(exclude_unset=True))
             response.raise_for_status()
             updated_assistant = response.json()
             validated_response = AssistantRead(**updated_assistant)  # Validate response using Pydantic model
