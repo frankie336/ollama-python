@@ -12,7 +12,7 @@ logging_utility = LoggingUtility()
 
 
 class MessageService:
-    def __init__(self, base_url: str, api_key: str):
+    def __init__(self, base_url="http://localhost:9000/", api_key="api-key"):
         self.base_url = base_url.rstrip('/')  # Remove trailing slash if present
         self.api_key = api_key
         self.client = httpx.Client(base_url=self.base_url, headers={"Authorization": f"Bearer {api_key}"})

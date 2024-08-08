@@ -9,8 +9,9 @@ from api.v1.schemas import Run, RunStatusUpdate  # Import the relevant Pydantic 
 # Initialize logging utility
 logging_utility = LoggingUtility()
 
+
 class RunService:
-    def __init__(self, base_url: str, api_key: str):
+    def __init__(self, base_url="http://localhost:9000/", api_key="api-key"):
         self.base_url = base_url
         self.api_key = api_key
         self.client = httpx.Client(base_url=base_url, headers={"Authorization": f"Bearer {api_key}"})
