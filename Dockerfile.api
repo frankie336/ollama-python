@@ -16,14 +16,22 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application code into the working directory
+# Copy the alembic.ini file and the rest of the application code into the working directory
+COPY alembic.ini .
 COPY . .
-
-# Expose the port that the app will run on
-EXPOSE 9000
 
 # Set the PYTHONPATH environment variable to the working directory
 ENV PYTHONPATH=/app
 
-# Command to run the application using Uvicorn
-CMD ["uvicorn", "api.app:app", "--host", "0.0.0.0", "--port", "9000"]
+# Set the DATABASE_URL environment variable with a default value
+ENV DATABASE_URL=${DATABASE_URL:-mysql+pymysql://ollama:3e4Qv5uo2Cg31zC1@db:3306/cosmic_catalyst}
+
+# Set other environment variables
+ENV ASSISTANTS_BASE_URL=http://localhost:9000/
+ENV API_KEY=${API_KEY:-your_api_key}
+
+# Expose the port that the app will run on
+EXPOSE 9000
+
+# Command to run Alembic migrations and then start the application using Uvicorn
+CMD ["sh", "-c", "alembic upgrade head && uvicorn api.app:app --host 0.0.0.0 --port 9000"]
