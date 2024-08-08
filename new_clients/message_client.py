@@ -4,7 +4,7 @@ from typing import List, Dict, Any, Optional
 import httpx
 from pydantic import ValidationError
 
-from api.v1.schemas import MessageCreate, MessageRead, MessageUpdate  # Import the relevant Pydantic models
+from api.v1.schemas import MessageCreate, MessageRead, MessageUpdate
 from services.loggin_service import LoggingUtility
 
 # Initialize logging utility
@@ -13,9 +13,9 @@ logging_utility = LoggingUtility()
 
 class MessageService:
     def __init__(self, base_url: str, api_key: str):
-        self.base_url = base_url
+        self.base_url = base_url.rstrip('/')  # Remove trailing slash if present
         self.api_key = api_key
-        self.client = httpx.Client(base_url=base_url, headers={"Authorization": f"Bearer {api_key}"})
+        self.client = httpx.Client(base_url=self.base_url, headers={"Authorization": f"Bearer {api_key}"})
         self.message_chunks: Dict[str, List[str]] = {}  # Temporary storage for message chunks
         logging_utility.info("MessageService initialized with base_url: %s", self.base_url)
 
@@ -33,9 +33,18 @@ class MessageService:
         }
 
         logging_utility.info("Creating message for thread_id: %s, role: %s", thread_id, role)
+        logging_utility.debug(f"Message data: {message_data}")
+
         try:
             validated_data = MessageCreate(**message_data)  # Validate data using Pydantic model
-            response = self.client.post("/v1/messages", json=validated_data.dict())
+            url = "/v1/messages"
+            logging_utility.debug(f"Sending POST request to: {self.base_url}{url}")
+            logging_utility.debug(f"Request payload: {validated_data.model_dump()}")
+
+            response = self.client.post(url, json=validated_data.model_dump())
+            logging_utility.debug(f"Response status code: {response.status_code}")
+            logging_utility.debug(f"Response content: {response.text}")
+
             response.raise_for_status()
             created_message = response.json()
             logging_utility.info("Message created successfully with id: %s", created_message.get('id'))
@@ -45,6 +54,7 @@ class MessageService:
             raise ValueError(f"Validation error: {e}")
         except httpx.HTTPStatusError as e:
             logging_utility.error("HTTP error occurred while creating message: %s", str(e))
+            logging_utility.error(f"Response content: {e.response.text}")
             raise
         except Exception as e:
             logging_utility.error("An error occurred while creating message: %s", str(e))
@@ -53,7 +63,13 @@ class MessageService:
     def retrieve_message(self, message_id: str) -> MessageRead:
         logging_utility.info("Retrieving message with id: %s", message_id)
         try:
-            response = self.client.get(f"/v1/messages/{message_id}")
+            url = f"/v1/messages/{message_id}"
+            logging_utility.debug(f"Sending GET request to: {self.base_url}{url}")
+
+            response = self.client.get(url)
+            logging_utility.debug(f"Response status code: {response.status_code}")
+            logging_utility.debug(f"Response content: {response.text}")
+
             response.raise_for_status()
             message = response.json()
             validated_message = MessageRead(**message)  # Validate data using Pydantic model
@@ -64,6 +80,7 @@ class MessageService:
             raise ValueError(f"Validation error: {e}")
         except httpx.HTTPStatusError as e:
             logging_utility.error("HTTP error occurred while retrieving message: %s", str(e))
+            logging_utility.error(f"Response content: {e.response.text}")
             raise
         except Exception as e:
             logging_utility.error("An error occurred while retrieving message: %s", str(e))
@@ -71,9 +88,17 @@ class MessageService:
 
     def update_message(self, message_id: str, **updates) -> MessageRead:
         logging_utility.info("Updating message with id: %s", message_id)
+        logging_utility.debug(f"Update data: {updates}")
         try:
             validated_data = MessageUpdate(**updates)  # Validate data using Pydantic model
-            response = self.client.put(f"/v1/messages/{message_id}", json=validated_data.dict(exclude_unset=True))
+            url = f"/v1/messages/{message_id}"
+            logging_utility.debug(f"Sending PUT request to: {self.base_url}{url}")
+            logging_utility.debug(f"Request payload: {validated_data.model_dump(exclude_unset=True)}")
+
+            response = self.client.put(url, json=validated_data.model_dump(exclude_unset=True))
+            logging_utility.debug(f"Response status code: {response.status_code}")
+            logging_utility.debug(f"Response content: {response.text}")
+
             response.raise_for_status()
             updated_message = response.json()
             validated_response = MessageRead(**updated_message)  # Validate response using Pydantic model
@@ -84,6 +109,7 @@ class MessageService:
             raise ValueError(f"Validation error: {e}")
         except httpx.HTTPStatusError as e:
             logging_utility.error("HTTP error occurred while updating message: %s", str(e))
+            logging_utility.error(f"Response content: {e.response.text}")
             raise
         except Exception as e:
             logging_utility.error("An error occurred while updating message: %s", str(e))
@@ -96,18 +122,24 @@ class MessageService:
             "order": order
         }
         try:
-            response = self.client.get(f"/v1/threads/{thread_id}/messages", params=params)
+            url = f"/v1/threads/{thread_id}/messages"
+            logging_utility.debug(f"Sending GET request to: {self.base_url}{url}")
+
+            response = self.client.get(url, params=params)
+            logging_utility.debug(f"Response status code: {response.status_code}")
+            logging_utility.debug(f"Response content: {response.text}")
+
             response.raise_for_status()
             messages = response.json()
-            validated_messages = [MessageRead(**message) for message in
-                                  messages]  # Validate response using Pydantic model
+            validated_messages = [MessageRead(**message) for message in messages]  # Validate response using Pydantic model
             logging_utility.info("Retrieved %d messages", len(validated_messages))
-            return [message.dict() for message in validated_messages]  # Convert Pydantic models to dictionaries
+            return [message.model_dump() for message in validated_messages]  # Convert Pydantic models to dictionaries
         except ValidationError as e:
             logging_utility.error("Validation error: %s", e.json())
             raise ValueError(f"Validation error: {e}")
         except httpx.HTTPStatusError as e:
             logging_utility.error("HTTP error occurred while listing messages: %s", str(e))
+            logging_utility.error(f"Response content: {e.response.text}")
             raise
         except Exception as e:
             logging_utility.error("An error occurred while listing messages: %s", str(e))
@@ -117,7 +149,13 @@ class MessageService:
         logging_utility.info("Getting formatted messages for thread_id: %s", thread_id)
         logging_utility.info("Using system message: %s", system_message)
         try:
-            response = self.client.get(f"/v1/threads/{thread_id}/formatted_messages")
+            url = f"/v1/threads/{thread_id}/formatted_messages"
+            logging_utility.debug(f"Sending GET request to: {self.base_url}{url}")
+
+            response = self.client.get(url)
+            logging_utility.debug(f"Response status code: {response.status_code}")
+            logging_utility.debug(f"Response content: {response.text}")
+
             response.raise_for_status()
             formatted_messages = response.json()
 
@@ -146,6 +184,7 @@ class MessageService:
                 raise ValueError(f"Thread not found: {thread_id}")
             else:
                 logging_utility.error("HTTP error occurred: %s", str(e))
+                logging_utility.error(f"Response content: {e.response.text}")
                 raise RuntimeError(f"HTTP error occurred: {e}")
         except Exception as e:
             logging_utility.error("An error occurred: %s", str(e))
@@ -154,13 +193,20 @@ class MessageService:
     def delete_message(self, message_id: str) -> Dict[str, Any]:
         logging_utility.info("Deleting message with id: %s", message_id)
         try:
-            response = self.client.delete(f"/v1/messages/{message_id}")
+            url = f"/v1/messages/{message_id}"
+            logging_utility.debug(f"Sending DELETE request to: {self.base_url}{url}")
+
+            response = self.client.delete(url)
+            logging_utility.debug(f"Response status code: {response.status_code}")
+            logging_utility.debug(f"Response content: {response.text}")
+
             response.raise_for_status()
             result = response.json()
             logging_utility.info("Message deleted successfully")
             return result
         except httpx.HTTPStatusError as e:
             logging_utility.error("HTTP error occurred while deleting message: %s", str(e))
+            logging_utility.error(f"Response content: {e.response.text}")
             raise
         except Exception as e:
             logging_utility.error("An error occurred while deleting message: %s", str(e))
@@ -175,16 +221,38 @@ class MessageService:
             "sender_id": "assistant",
             "meta_data": {}
         }
+        logging_utility.debug(f"Message data: {message_data}")
 
         try:
-            response = self.client.post("/v1/messages/assistant", json=message_data)
+            url = "/v1/messages/assistant"
+            logging_utility.debug(f"Sending POST request to: {self.base_url}{url}")
+            logging_utility.debug(f"Request payload: {message_data}")
+
+            response = self.client.post(url, json=message_data)
+            logging_utility.debug(f"Response status code: {response.status_code}")
+            logging_utility.debug(f"Response content: {response.text}")
+
             response.raise_for_status()
             saved_message = response.json()
             logging_utility.info("Assistant message chunk saved successfully")
             return saved_message
         except httpx.HTTPStatusError as e:
             logging_utility.error("HTTP error occurred while saving assistant message chunk: %s", str(e))
+            logging_utility.error(f"Response content: {e.response.text}")
             return None
         except Exception as e:
             logging_utility.error("An error occurred while saving assistant message chunk: %s", str(e))
             return None
+
+
+if __name__ == "__main__":
+    # Replace with your actual base URL and API key
+    base_url = "http://localhost:9000"
+    api_key = "your_api_key"
+    #user_client = UserService(base_url, api_key)
+    #user = user_client.create_user(name="test"
+    #user_id = user.id
+    message_service = MessageService(base_url, api_key)
+    message_list = message_service.list_messages(thread_id="thread_bfkqar4tGoo25V5Hjrtf0n")
+    print(message_list)
+

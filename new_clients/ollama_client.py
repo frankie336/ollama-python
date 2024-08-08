@@ -35,6 +35,7 @@ from services.loggin_service import LoggingUtility
 logging_utility = LoggingUtility()
 
 # BaseClient class
+
 class BaseClient:
     def __init__(self, client, host: Optional[str] = None, follow_redirects: bool = True, timeout: Any = None, **kwargs) -> None:
         headers = kwargs.pop('headers', {})

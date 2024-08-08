@@ -1,3 +1,5 @@
+import time
+
 import httpx
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, ValidationError
@@ -147,23 +149,25 @@ if __name__ == "__main__":
         user2 = thread_service.create_user(name="User 2")
 
         # Get user IDs
-        user1_id = user1.id
-        user2_id = user2.id
+        #user1_id = user1.id
+        #user2_id = user2.id
 
         # Create a thread
-        new_thread = thread_service.create_thread(participant_ids=[user1_id, user2_id], meta_data={"topic": "Test Thread"})
+        new_thread = thread_service.create_thread(participant_ids=[user1.id], meta_data={"topic": "Test Thread"})
+        print(new_thread.id)
+        time.sleep(120000)
 
         # Retrieve the thread ID from the response
-        thread_id = new_thread.id
+        #thread_id = new_thread.id
 
-        logging_utility.info("Created thread with ID: %s", thread_id)
+        #logging_utility.info("Created thread with ID: %s", thread_id)
 
         # Optionally, retrieve the created thread to verify
-        retrieved_thread = thread_service.retrieve_thread(thread_id)
-        logging_utility.info("Retrieved thread: %s", retrieved_thread)
+        #retrieved_thread = thread_service.retrieve_thread(thread_id)
+        #logging_utility.info("Retrieved thread: %s", retrieved_thread)
 
         # List threads for user1
-        thread_ids_user1 = thread_service.list_threads(user1_id)
+        thread_ids_user1 = thread_service.list_threads("user_jFrcfHoIEshRToPdCaASqe")
         logging_utility.info("List of thread ids for user1: %s", thread_ids_user1)
 
     except Exception as e:

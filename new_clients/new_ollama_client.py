@@ -21,7 +21,7 @@ logging_utility = LoggingUtility()
 
 
 class OllamaClient:
-    def __init__(self, base_url=os.getenv('ASSISTANTS_BASE_URL'), api_key='your api key'):
+    def __init__(self, base_url="http://localhost:9000/", api_key='your api key'):
         self.base_url = base_url or os.getenv('ASSISTANTS_BASE_URL')
         self.api_key = api_key or os.getenv('API_KEY')
         self.user_service = UserService(self.base_url, self.api_key)
@@ -53,7 +53,7 @@ class OllamaClient:
         logging_utility.info("Run created with ID: %s", run['id'])
         return run
 
-    def streamed_response_helper(self, messages, thread_id, run_id, model='llama3.1'):
+    def streamed_response_helper(self, messages, thread_id, run_id, model='llama3.1:70b'):
         logging_utility.info("Starting streamed response for thread_id: %s, run_id: %s, model: %s", thread_id, run_id, model)
         try:
             response = self.ollama_client.chat(
@@ -118,6 +118,7 @@ if __name__ == "__main__":
 
     assistant = client.assistant_service.create_assistant(
         name='Mathy',
+        user_id=user1.id,
         description='My helpful maths tutor',
         model='llama3.1',
         instructions='Be as kind, intelligent, and helpful',
