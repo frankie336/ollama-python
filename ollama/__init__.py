@@ -8,13 +8,9 @@ from ollama._types import (
   RequestError,
   ResponseError,
 )
+
+
 from new_clients.new_ollama_client import OllamaClient
-from new_clients.assistant_client import AssistantService
-from new_clients.message_client import MessageService
-from new_clients.run_client import RunService
-from new_clients.thread_client import ThreadService
-from new_clients.user_client import UserService
-from services.loggin_service import LoggingUtility
 
 __all__ = [
   'Client',
