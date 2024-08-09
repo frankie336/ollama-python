@@ -10,7 +10,7 @@ from ollama.new_clients.run_client import RunService
 from ollama.new_clients.thread_client import ThreadService
 from ollama.new_clients.user_client import UserService
 from ollama import Client
-from services.loggin_service import LoggingUtility
+from ollama.new_clients.loggin_service import LoggingUtility
 
 # Load environment variables from .env file
 load_dotenv()

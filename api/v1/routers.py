@@ -7,7 +7,7 @@ from api.v1.schemas import (
 )
 from db.database import get_db
 from services.assistant_service import AssistantService
-from services.loggin_service import LoggingUtility
+from ollama.new_clients.loggin_service import LoggingUtility
 from services.message_service import MessageService
 from services.run_service import RunService
 from services.thread_service import ThreadService

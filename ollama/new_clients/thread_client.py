@@ -2,9 +2,9 @@ import time
 
 import httpx
 from typing import List, Dict, Any, Optional
-from pydantic import BaseModel, ValidationError
-from services.loggin_service import LoggingUtility
-from api.v1.schemas import UserCreate, UserRead, ThreadCreate, ThreadRead, ThreadReadDetailed, ThreadUpdate, ThreadIds
+from pydantic import ValidationError
+from ollama.new_clients.loggin_service import LoggingUtility
+from api.v1.schemas import UserCreate, UserRead, ThreadCreate, ThreadRead, ThreadUpdate, ThreadIds
 
 # Initialize logging utility
 logging_utility = LoggingUtility()

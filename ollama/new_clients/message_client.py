@@ -5,7 +5,8 @@ import httpx
 from pydantic import ValidationError
 
 from api.v1.schemas import MessageCreate, MessageRead, MessageUpdate
-from services.loggin_service import LoggingUtility
+from ollama.new_clients.loggin_service import LoggingUtility
+
 
 # Initialize logging utility
 logging_utility = LoggingUtility()

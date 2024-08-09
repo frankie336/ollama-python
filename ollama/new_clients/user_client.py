@@ -1,6 +1,5 @@
 import httpx
-from typing import Dict, Any
-from services.loggin_service import LoggingUtility
+from ollama.new_clients.loggin_service import LoggingUtility
 from pydantic import ValidationError
 from api.v1.schemas import UserRead, UserCreate, UserUpdate, UserDeleteResponse
 

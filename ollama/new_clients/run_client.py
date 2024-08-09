@@ -3,7 +3,7 @@ import time
 from typing import List, Dict, Any, Optional
 from pydantic import ValidationError
 from services.identifier_service import IdentifierService
-from services.loggin_service import LoggingUtility
+from ollama.new_clients.loggin_service import LoggingUtility
 from api.v1.schemas import Run, RunStatusUpdate  # Import the relevant Pydantic models
 
 # Initialize logging utility
