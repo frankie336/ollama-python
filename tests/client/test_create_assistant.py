@@ -1,4 +1,4 @@
-from new_clients.assistant_client import AssistantService
+from ollama.new_clients import AssistantService
 import os
 
 base_url = "http://localhost:8000"

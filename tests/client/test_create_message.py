@@ -1,8 +1,8 @@
 import pytest
 import os
-from new_clients.message_client import MessageService
-from new_clients.thread_client import ThreadService
-from new_clients.user_client import UserService  # Assuming UserService exists
+from ollama.new_clients.message_client import MessageService
+from ollama.new_clients import ThreadService
+from ollama.new_clients import UserService  # Assuming UserService exists
 
 base_url = "http://localhost:8000"
 api_key = os.getenv("API_KEY")  # Make sure to set this in your environment

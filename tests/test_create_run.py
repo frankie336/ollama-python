@@ -1,9 +1,9 @@
 import pytest
 import os
-from new_clients.run_client import RunService
-from new_clients.thread_client import ThreadService
-from new_clients.assistant_client import AssistantService
-from new_clients.user_client import UserService  # Assuming UserService exists
+from ollama.new_clients import RunService
+from ollama.new_clients import ThreadService
+from ollama.new_clients import AssistantService
+from ollama.new_clients import UserService  # Assuming UserService exists
 
 base_url = "http://localhost:8000"
 api_key = os.getenv("API_KEY")  # Make sure to set this in your environment

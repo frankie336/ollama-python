@@ -1,15 +1,14 @@
 # new_clients/new_ollama_client.py
 import json
 import os
-import time
 
 from dotenv import load_dotenv
 
-from new_clients.assistant_client import AssistantService
-from new_clients.message_client import MessageService
-from new_clients.run_client import RunService
-from new_clients.thread_client import ThreadService
-from new_clients.user_client import UserService
+from ollama.new_clients.assistant_client import AssistantService
+from ollama.new_clients.message_client import MessageService
+from ollama.new_clients.run_client import RunService
+from ollama.new_clients.thread_client import ThreadService
+from ollama.new_clients.user_client import UserService
 from ollama import Client
 from services.loggin_service import LoggingUtility
 
